@@ -12,3 +12,5 @@ A mobile-app like website for an agriculture business.
 - WhatsApp Integration.
 - Google Maps Embed.
 - Agriculture themed UI.
+
+Testing preview deployment
