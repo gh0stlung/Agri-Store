@@ -1,166 +1,115 @@
-import React, { useState } from 'react';
-import { ShoppingBag, X, Minus, Plus, MessageCircle, Loader2 } from 'lucide-react';
-import { useCart } from '../context/CartContext.tsx';
-import { supabase } from '../services/supabase.ts';
+'use client';
+import React from 'react';
+import { ShoppingBag, X, Minus, Plus, ArrowRight, Trash2 } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { useNavigation } from '../context/NavigationContext';
 
-interface CartDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+export const CartDrawer: React.FC = () => {
+  const { cart, cartTotal, updateQuantity, removeFromCart, isCartOpen, setIsCartOpen } = useCart();
+  const { push } = useNavigation();
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-  const { cart, cartTotal, updateQuantity, removeFromCart, clearCart } = useCart();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleCheckout = async () => {
-    if (cart.length === 0 || isProcessing) return;
-    setIsProcessing(true);
-
-    // 1. Construct WhatsApp Message (Prepare first)
-    const itemsList = cart
-      .map((item) => `- ${item.name} (${item.quantity} x ₹${item.price})`)
-      .join('\n');
-    
-    const message = `Hi, I want to place an order:\n\n${itemsList}\n\n*Total: ₹${cartTotal}*\n\nPlease confirm my order.`;
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/919368340997?text=${encodedMessage}`;
-
-    try {
-      // 2. Try to Save Order to Supabase
-      // Sanitize data
-      const cleanItems = cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        category: item.category
-      }));
-
-      // NOTE: This might fail if RLS (Row Level Security) is on and Anon key doesn't have INSERT permission.
-      // We catch error so user can still checkout via WhatsApp.
-      const { error } = await supabase.from('orders').insert([
-        {
-          items: cleanItems,
-          total_price: cartTotal,
-          created_at: new Date().toISOString(),
-        }
-      ]);
-
-      if (error) {
-        console.warn('Order save failed (Continuing to WhatsApp):', error.message);
-      } else {
-        console.log('Order saved to database');
-      }
-
-    } catch (err) {
-      console.error('Checkout unexpected error:', err);
-    } finally {
-      // 3. Always open WhatsApp, even if database save fails
-      window.open(whatsappUrl, '_blank');
-      
-      // 4. Cleanup
-      clearCart();
-      setIsProcessing(false);
-      onClose();
-    }
+  const handleCheckout = () => {
+    setIsCartOpen(false);
+    push('/order');
   };
 
-  if (!isOpen) return null;
+  if (!isCartOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity animate-fade-in"
+        onClick={() => setIsCartOpen(false)}
       />
       
       {/* Drawer */}
-      <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-fade-in">
-        <div className="p-4 border-b flex justify-between items-center bg-emerald-50">
-          <h2 className="text-lg font-bold text-emerald-900 flex items-center gap-2">
-            <ShoppingBag className="text-emerald-600" />
-            Your Cart
+      <div className="relative w-full max-w-md bg-[var(--bg-main)] h-full shadow-2xl flex flex-col animate-slide-in">
+        {/* Header */}
+        <div className="p-5 border-b border-[#E7E5E4] flex justify-between items-center bg-white shadow-sm z-10">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2 font-serif">
+            <ShoppingBag className="text-[#064E3B] fill-emerald-50" />
+            Your Cart <span className="text-sm font-sans font-normal text-gray-500">({cart.length} items)</span>
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-emerald-100 rounded-full transition-colors">
-            <X size={20} className="text-emerald-700" />
+          <button onClick={() => setIsCartOpen(false)} className="p-2 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors active:scale-90">
+            <X size={20} className="text-gray-600" />
           </button>
         </div>
 
+        {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400">
-              <ShoppingBag size={48} className="mb-2 opacity-20" />
-              <p>Your cart is empty</p>
+            <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+                 <ShoppingBag size={32} className="opacity-40" />
+              </div>
+              <div className="text-center">
+                  <p className="text-lg font-bold text-gray-600">Your cart is empty</p>
+                  <p className="text-sm">Add some seeds or fertilizers to get started.</p>
+              </div>
               <button 
-                onClick={onClose}
-                className="mt-4 text-emerald-600 font-medium hover:underline"
+                onClick={() => setIsCartOpen(false)}
+                className="px-6 py-3 bg-[#064E3B] text-white rounded-[16px] font-bold shadow-lg hover:scale-105 transition-transform"
               >
-                Browse Catalog
+                Start Shopping
               </button>
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="flex gap-3 bg-white border border-gray-100 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow">
+              <div key={item.id} className="flex gap-4 bg-white border border-[#E7E5E4] rounded-[20px] p-3 shadow-sm relative overflow-hidden group">
                 <img 
                   src={item.image_url || 'https://via.placeholder.com/80'} 
                   alt={item.name} 
-                  className="w-20 h-20 object-cover rounded-lg bg-gray-100"
+                  className="w-24 h-24 object-cover rounded-[16px] bg-gray-100"
                 />
-                <div className="flex-1 flex flex-col justify-between">
+                <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
-                    <h4 className="font-semibold text-gray-800 line-clamp-1">{item.name}</h4>
-                    <p className="text-emerald-600 font-bold">₹{item.price * item.quantity}</p>
+                    <h4 className="font-bold text-gray-800 line-clamp-1 text-base">{item.name}</h4>
+                    <p className="text-xs text-gray-500 font-medium">{item.unit || 'Unit'}</p>
                   </div>
-                  <div className="flex items-center gap-3 bg-gray-50 self-start rounded-lg p-1">
-                    <button 
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 active:scale-95 transition-transform"
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
-                    <button 
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 active:scale-95 transition-transform"
-                    >
-                      <Plus size={14} />
-                    </button>
+                  
+                  <div className="flex justify-between items-end">
+                      <p className="text-lg font-black text-[#064E3B]">₹{item.price * item.quantity}</p>
+                      
+                      <div className="flex items-center gap-3 bg-gray-50 rounded-[12px] p-1 border border-gray-100 shadow-inner">
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-8 flex items-center justify-center bg-white rounded-[8px] shadow-sm text-gray-700 hover:text-red-500 active:scale-90 transition-all border border-gray-100"
+                        >
+                          {item.quantity === 1 ? <Trash2 size={14} /> : <Minus size={14} />}
+                        </button>
+                        <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="w-8 h-8 flex items-center justify-center bg-[#064E3B] rounded-[8px] shadow-sm text-white hover:bg-[#053d2e] active:scale-90 transition-all"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
                   </div>
                 </div>
-                <button 
-                  onClick={() => removeFromCart(item.id)}
-                  className="text-gray-300 hover:text-red-500 self-start p-1 transition-colors"
-                >
-                  <X size={16} />
-                </button>
               </div>
             ))
           )}
         </div>
 
+        {/* Footer */}
         {cart.length > 0 && (
-          <div className="p-4 border-t bg-gray-50">
+          <div className="p-5 border-t border-[#E7E5E4] bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-10">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-gray-600">Total Amount</span>
-              <span className="text-2xl font-black text-gray-900">₹{cartTotal}</span>
+              <div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Total Amount</span>
+                  <span className="text-2xl font-black text-[#064E3B]">₹{cartTotal}</span>
+              </div>
             </div>
             <button
               onClick={handleCheckout}
-              disabled={isProcessing}
-              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-[#064E3B] hover:bg-[#053d2e] text-white font-bold py-4 px-6 rounded-[16px] flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
             >
-              {isProcessing ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <MessageCircle size={20} fill="white" />
-                  Order via WhatsApp
-                </>
-              )}
+              <span>Proceed to Checkout</span>
+              <div className="bg-white/20 p-1 rounded-full">
+                <ArrowRight size={16} strokeWidth={3} />
+              </div>
             </button>
           </div>
         )}

@@ -27,8 +27,12 @@
         }
 
         @layer base {
+            html {
+                scroll-behavior: smooth;
+            }
             body {
                 @apply bg-[var(--bg-main)] text-[var(--text-body)] font-['Plus_Jakarta_Sans'] antialiased pb-28 selection:bg-[var(--primary-btn)] selection:text-white;
+                -webkit-tap-highlight-color: transparent;
             }
             h1, h2, h3, h4, h5, h6 {
                 @apply font-['Merriweather'] text-[var(--text-primary)];
@@ -36,23 +40,28 @@
             button, a {
                 @apply cursor-pointer touch-manipulation;
             }
+            /* Hardware acceleration utility */
+            .hardware-accel {
+                transform: translateZ(0);
+                backface-visibility: hidden;
+            }
         }
 
         @layer components {
             .card-premium {
-                @apply bg-[var(--card-bg)] rounded-[16px] shadow-[var(--shadow-premium)] border border-[#E7E5E4] overflow-hidden transform transition-transform duration-300;
+                @apply bg-[var(--card-bg)] rounded-[16px] shadow-[var(--shadow-premium)] border border-[#E7E5E4] overflow-hidden transform-gpu transition-all duration-300;
             }
             .card-interactive {
-                @apply hover:-translate-y-1;
+                @apply hover:-translate-y-1 hover:shadow-xl hover:border-emerald-200/50 active:scale-[0.98] transition-all duration-200;
             }
             .btn-premium {
-                @apply bg-[var(--primary-btn)] text-white px-8 py-4 rounded-[16px] font-bold shadow-md hover:shadow-lg active:scale-95 transition-transform duration-150 flex items-center justify-center gap-2 text-base min-h-[48px];
+                @apply bg-[var(--primary-btn)] text-white px-8 py-4 rounded-[16px] font-bold shadow-md hover:shadow-xl hover:shadow-emerald-900/10 hover:scale-[1.02] active:scale-[0.95] transition-all duration-200 ease-out flex items-center justify-center gap-2 text-base min-h-[48px] transform-gpu;
             }
             .nav-item {
-                @apply flex flex-col items-center justify-center text-xs font-semibold text-[#A8A29E] p-2 w-full transition-colors duration-300 cursor-pointer;
+                @apply flex flex-col items-center justify-center text-xs font-semibold text-[#A8A29E] p-2 w-full transition-all duration-200 cursor-pointer active:scale-90;
             }
             .nav-item.active {
-                @apply text-[var(--text-secondary)] font-bold;
+                @apply text-[var(--text-secondary)] font-bold scale-105;
             }
             .scrollbar-hide::-webkit-scrollbar {
                 display: none;
@@ -67,20 +76,57 @@
             .pb-safe {
                 padding-bottom: env(safe-area-inset-bottom);
             }
+            
             .animate-fade-in {
-                animation: fadeIn 0.6s ease-out forwards;
+                animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 opacity: 0;
+                will-change: opacity, transform;
             }
             
+            .animate-fade-in-up {
+                animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                opacity: 0;
+                will-change: opacity, transform;
+            }
+
+            .animate-ken-burns {
+                animation: kenBurns 20s ease-out infinite alternate;
+                will-change: transform;
+            }
+
+            .animate-slide-up {
+                animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                will-change: transform, opacity;
+            }
+            
+            .animate-slide-in {
+                animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                will-change: transform;
+            }
+
             @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            @keyframes slideUp {
+                from { transform: translateY(20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            
+            @keyframes slideInRight {
+                from { transform: translateX(100%); }
+                to { transform: translateX(0); }
+            }
+
+            @keyframes kenBurns {
+                0% { transform: scale(1); }
+                100% { transform: scale(1.15); }
             }
         }
     </style>
@@ -92,7 +138,13 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.95.3",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.564.0"
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "path": "https://esm.sh/path@^0.12.7",
+    "url": "https://esm.sh/url@^0.11.4",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
+    "next/": "https://esm.sh/next@^16.1.6/"
   }
 }
 </script>

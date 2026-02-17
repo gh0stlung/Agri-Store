@@ -5,6 +5,8 @@ export interface Product {
   price: number;
   image_url: string;
   stock: number;
+  unit?: string; // e.g., 'kg', 'bag', 'piece'
+  is_active: boolean; // Control visibility in catalog
   created_at?: string;
 }
 
@@ -18,6 +20,23 @@ export interface Order {
   total_price: number;
   items: CartItem[]; // Stored as JSONB in Supabase
   status?: string;
+  customer_name?: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface StoreUpdate {
+  id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface DeliveryStaff {
+  id: string;
+  name: string;
+  phone: string;
+  vehicle: string;
+  created_at?: string;
 }
 
 export interface CartContextType {

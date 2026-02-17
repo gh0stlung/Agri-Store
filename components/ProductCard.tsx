@@ -1,6 +1,6 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
-import { Product } from '../types.ts';
+import { Plus, AlertCircle } from 'lucide-react';
+import { Product } from '../types';
 
 interface ProductCardProps {
   product: Product;
@@ -8,42 +8,69 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
-  const { name, category, price, image_url } = product;
+  const { name, category, price, image_url, stock, unit } = product;
+  const isOutOfStock = stock <= 0;
 
   return (
     <div 
-      className="card-premium card-interactive group relative flex flex-col h-full cursor-pointer"
-      onClick={() => onAdd(product)}
+      className={`bg-white rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E7E5E4] group relative flex flex-col h-full overflow-hidden transition-all duration-300 ${isOutOfStock ? 'opacity-70 grayscale-[0.8]' : 'hover:-translate-y-1 hover:shadow-xl hover:border-emerald-100 cursor-pointer active:scale-[0.98]'}`}
+      onClick={() => !isOutOfStock && onAdd(product)}
     >
-      <div className="h-40 relative overflow-hidden bg-gray-50 p-1">
+      {/* Image Container */}
+      <div className="h-40 relative overflow-hidden bg-gray-50 m-1.5 rounded-[16px]">
         <img 
             src={image_url || 'https://via.placeholder.com/300?text=No+Image'} 
             alt={name} 
-            className="w-full h-full object-cover rounded-[12px] transition-transform duration-500 ease-out group-hover:scale-105 will-change-transform" 
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
             loading="lazy"
         />
         
-        {/* Clean Category Badge */}
-        <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-none text-[var(--text-secondary)] text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm border border-[#E7E5E4]">
+        {/* Category Badge */}
+        <span className="absolute top-2 left-2 bg-white/95 backdrop-blur-md text-[#78350F] text-[10px] font-bold px-2.5 py-1 rounded-[8px] shadow-sm border border-gray-100 tracking-wide">
             {category}
         </span>
+
+        {/* Stock Badge */}
+        {isOutOfStock ? (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                <span className="bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg border border-white/20 transform -rotate-3">
+                    Out of Stock
+                </span>
+            </div>
+        ) : stock < 10 && (
+            <span className="absolute bottom-2 right-2 bg-orange-500 text-white text-[9px] font-bold px-2 py-1 rounded-[8px] shadow-sm flex items-center gap-1 border border-white/20">
+                <AlertCircle size={10} /> Few Left
+            </span>
+        )}
       </div>
       
-      <div className="p-4 flex flex-col flex-grow">
-          <h3 className="font-bold text-[var(--text-primary)] text-base mb-1 leading-tight font-serif line-clamp-2">{name}</h3>
-          <div className="flex justify-between items-end mt-auto pt-3">
+      {/* Content */}
+      <div className="p-3.5 flex flex-col flex-grow">
+          <div className="flex-grow">
+              <h3 className="font-bold text-[#064E3B] text-sm mb-1.5 leading-snug font-serif line-clamp-2">{name}</h3>
+              <p className="text-[10px] text-gray-500 font-bold bg-gray-100/50 inline-block px-2 py-0.5 rounded-[6px] border border-gray-100">
+                  {unit || 'Item'}
+              </p>
+          </div>
+          
+          <div className="flex justify-between items-end mt-4 pt-3 border-t border-dashed border-gray-200">
               <div className="flex flex-col">
-                  <span className="text-[10px] text-[#A8A29E] font-bold uppercase tracking-wider mb-0.5">Price</span>
-                  <span className="text-lg font-black text-[var(--text-secondary)] font-sans">₹{price}</span>
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Price</span>
+                  <span className="text-lg font-black text-[#78350F] font-sans tracking-tight">₹{price}</span>
               </div>
               <button 
-                className="w-10 h-10 rounded-full bg-[#ECFDF5] text-[var(--text-primary)] active:scale-90 transition-transform duration-150 flex items-center justify-center shadow-sm border border-[#D1FAE5]"
+                className={`w-10 h-10 rounded-[12px] flex items-center justify-center shadow-md transition-all duration-300 ${
+                    isOutOfStock 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-[#064E3B] text-white hover:bg-[#053d2e] shadow-[#064E3B]/20'
+                }`}
+                disabled={isOutOfStock}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onAdd(product);
+                  !isOutOfStock && onAdd(product);
                 }}
               >
-                  <Plus size={18} strokeWidth={2.5} />
+                  <Plus size={20} strokeWidth={3} />
               </button>
           </div>
       </div>

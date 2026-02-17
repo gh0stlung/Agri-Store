@@ -1,65 +1,88 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Home } from './pages/Home.tsx';
-import { Catalog } from './pages/Catalog.tsx';
-import { Contact } from './pages/Contact.tsx';
-import { Admin } from './pages/Admin.tsx';
-import { Login } from './pages/Login.tsx';
-import { ProtectedRoute } from './components/ProtectedRoute.tsx';
-import { CartDrawer } from './components/CartDrawer.tsx';
+import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Home } from './pages/Home';
+import { Login } from './pages/Login';
+import { Admin } from './pages/Admin';
+import { Catalog } from './pages/Catalog';
+import { Order } from './pages/Order';
+import { TrackOrder } from './pages/TrackOrder';
+import { Contact } from './pages/Contact';
+import { CartDrawer } from './components/CartDrawer';
+import { AIChatDrawer } from './components/AIChatDrawer';
+import { ScrollToTop } from './components/ScrollToTop';
 import { ShoppingBag } from 'lucide-react';
-import { CartProvider, useCart } from './context/CartContext.tsx';
+import { CartProvider, useCart } from './context/CartContext';
+import { AIProvider } from './context/AIContext';
+import { NavigationProvider } from './context/NavigationContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const AppContent: React.FC = () => {
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
 
   return (
-    <div className="max-w-md mx-auto relative">
+    <div className="max-w-md mx-auto relative min-h-screen bg-[var(--bg-main)] shadow-2xl overflow-hidden flex flex-col">
+      <ScrollToTop />
+      
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/catalog" element={<Catalog />} />
-        <Route path="/contact" element={<Contact />} />
-        
-        {/* Protected Admin Route */}
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute>
-              <Admin />
-            </ProtectedRoute>
-          } 
-        />
-        
         <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/admin" element={
+            <ProtectedRoute>
+                <Admin />
+            </ProtectedRoute>
+        } />
+        <Route path="/order" element={<Order />} />
+        <Route path="/track" element={<TrackOrder />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
       
       {/* Floating Cart Button */}
       {!isCartOpen && cartCount > 0 && (
         <button 
           onClick={() => setIsCartOpen(true)}
-          className="fixed bottom-28 left-6 bg-[#064E3B] text-white p-4 rounded-full shadow-lg z-40 animate-bounce"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#064E3B] text-white px-6 py-3 rounded-full shadow-xl z-40 animate-bounce cursor-pointer hover:bg-[#065E4B] active:scale-95 transition-all duration-300 flex items-center gap-2 border border-emerald-400/20"
+          aria-label="View Cart"
         >
-          <div className="relative">
-            <ShoppingBag size={24} />
-            <span className="absolute -top-2 -right-2 bg-[#78350F] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#064E3B]">
-              {cartCount}
-            </span>
-          </div>
+          <ShoppingBag size={20} />
+          <span className="font-bold text-sm">View Cart ({cartCount})</span>
         </button>
       )}
 
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartDrawer />
+      <AIChatDrawer />
     </div>
   );
 };
 
+// Wrapper to provide Navigation Context for React-Router environment
+const AppProviderWrapper = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    
+    const navValue = {
+        push: (path: string) => navigate(path),
+        replace: (path: string) => navigate(path, { replace: true }),
+        back: () => navigate(-1),
+        pathname: location.pathname,
+        isNext: false
+    };
+
+    return (
+        <NavigationProvider value={navValue}>
+             <AIProvider>
+                <CartProvider>
+                    <AppContent />
+                </CartProvider>
+             </AIProvider>
+        </NavigationProvider>
+    );
+};
+
 export default function App() {
   return (
-    <CartProvider>
-      <HashRouter>
-        <AppContent />
-      </HashRouter>
-    </CartProvider>
+    <HashRouter>
+        <AppProviderWrapper />
+    </HashRouter>
   );
 }

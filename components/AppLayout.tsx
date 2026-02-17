@@ -12,7 +12,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activePage, page
   return (
     <div className="min-h-screen bg-[var(--bg-main)] max-w-md mx-auto relative overflow-hidden flex flex-col shadow-2xl">
         <Header title={pageTitle} />
-        <main className="p-4 space-y-5 pb-32 flex-grow relative z-10">
+        {/* Added extra bottom padding (pb-36) to ensure content clears the floating bottom nav */}
+        <main key={activePage} className="p-4 space-y-5 pb-36 flex-grow relative z-10 animate-fade-in">
             {children}
         </main>
         <BottomNav activePage={activePage} />
