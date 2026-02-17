@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>New Nikhil Khad Bhandar</title>
+    <meta name="description" content="Agriculture products, seeds, fertilizers, and pesticides in Ganjdundwara">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FFFCF0" />
+    
+    <!-- Fonts: Merriweather + Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style type="text/tailwindcss">
+        @layer theme {
+            :root {
+                --bg-main: #FFFCF0; /* Warm Cream */
+                --text-primary: #064E3B; /* Deep Emerald */
+                --text-secondary: #78350F; /* Copper Brown */
+                --text-body: #27272a; /* Dark Loam */
+                --primary-btn: #064E3B; /* Deep Emerald */
+                --card-bg: #FFFFFF; /* Porcelain White */
+                --shadow-premium: 0 8px 30px rgba(0,0,0,0.08); /* High-End Shadow */
+            }
+        }
+
+        @layer base {
+            body {
+                @apply bg-[var(--bg-main)] text-[var(--text-body)] font-['Plus_Jakarta_Sans'] antialiased pb-28 selection:bg-[var(--primary-btn)] selection:text-white;
+            }
+            h1, h2, h3, h4, h5, h6 {
+                @apply font-['Merriweather'] text-[var(--text-primary)];
+            }
+            button, a {
+                @apply cursor-pointer touch-manipulation;
+            }
+        }
+
+        @layer components {
+            .card-premium {
+                @apply bg-[var(--card-bg)] rounded-[16px] shadow-[var(--shadow-premium)] border border-[#E7E5E4] overflow-hidden transform transition-transform duration-300;
+            }
+            .card-interactive {
+                @apply hover:-translate-y-1;
+            }
+            .btn-premium {
+                @apply bg-[var(--primary-btn)] text-white px-8 py-4 rounded-[16px] font-bold shadow-md hover:shadow-lg active:scale-95 transition-transform duration-150 flex items-center justify-center gap-2 text-base min-h-[48px];
+            }
+            .nav-item {
+                @apply flex flex-col items-center justify-center text-xs font-semibold text-[#A8A29E] p-2 w-full transition-colors duration-300 cursor-pointer;
+            }
+            .nav-item.active {
+                @apply text-[var(--text-secondary)] font-bold;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+
+        @layer utilities {
+            .pb-safe {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            .animate-fade-in {
+                animation: fadeIn 0.6s ease-out forwards;
+                opacity: 0;
+            }
+            
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.95.3",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>
