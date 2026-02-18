@@ -8,11 +8,9 @@ import { Order } from './pages/Order';
 import { TrackOrder } from './pages/TrackOrder';
 import { Contact } from './pages/Contact';
 import { CartDrawer } from './components/CartDrawer';
-import { AIChatDrawer } from './components/AIChatDrawer';
 import { ScrollToTop } from './components/ScrollToTop';
 import { ShoppingBag } from 'lucide-react';
 import { CartProvider, useCart } from './context/CartContext';
-import { AIProvider } from './context/AIContext';
 import { NavigationProvider } from './context/NavigationContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -53,7 +51,6 @@ const AppContent: React.FC = () => {
       )}
 
       <CartDrawer />
-      <AIChatDrawer />
     </div>
   );
 };
@@ -73,11 +70,9 @@ const AppProviderWrapper = () => {
 
     return (
         <NavigationProvider value={navValue}>
-             <AIProvider>
-                <CartProvider>
-                    <AppContent />
-                </CartProvider>
-             </AIProvider>
+            <CartProvider>
+                <AppContent />
+            </CartProvider>
         </NavigationProvider>
     );
 };

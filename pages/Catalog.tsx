@@ -4,7 +4,7 @@ import { ProductCard } from '../components/ProductCard';
 import { AppLayout } from '../components/AppLayout';
 import { useCart } from '../context/CartContext';
 import { Product } from '../types';
-import { Search, Filter, RefreshCw, X, Sprout, Droplets, Bug, Wrench, Gift, Package, AlertCircle } from 'lucide-react';
+import { Search, Filter, RefreshCw, X, ShoppingBag, AlertCircle } from 'lucide-react';
 
 export const Catalog: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,43 +13,45 @@ export const Catalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { addToCart } = useCart();
 
-  // Updated Category Images
+  // Updated Category Images - High Quality & Relevant
   const CATEGORIES = [
     { 
         name: 'All', 
-        label: 'All Items', 
-        image: 'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=600&q=80', 
-        icon: Package 
+        label: 'View All', 
+        image: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=400&q=80',
+        color: 'from-gray-900/90 via-gray-900/40 to-transparent'
     },
     { 
         name: 'Seeds', 
         label: 'Seeds', 
-        image: 'https://images.unsplash.com/photo-1593105544559-ecb03bf71f60?auto=format&fit=crop&w=600&q=80', 
-        icon: Sprout 
+        // Updated to a better seeds image (hands holding seeds)
+        image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=80', 
+        color: 'from-emerald-900/90 via-emerald-900/40 to-transparent'
     },
     { 
         name: 'Fertilizer', 
         label: 'Fertilizers', 
-        image: 'https://images.unsplash.com/photo-1632125944720-630e6103635d?auto=format&fit=crop&w=600&q=80', 
-        icon: Droplets 
+        image: 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=400&q=80', 
+        color: 'from-amber-900/90 via-amber-900/40 to-transparent'
     },
     { 
         name: 'Pesticides', 
         label: 'Pesticides', 
-        image: 'https://images.unsplash.com/photo-1587334204557-22f3ce63905a?auto=format&fit=crop&w=600&q=80', 
-        icon: Bug 
+        // Updated to a better pesticides image
+        image: 'https://plus.unsplash.com/premium_photo-1661962692059-55d5a4319814?auto=format&fit=crop&w=400&q=80', 
+        color: 'from-rose-900/90 via-rose-900/40 to-transparent'
     },
     { 
         name: 'Tools', 
-        label: 'Tools', 
-        image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=600&q=80', 
-        icon: Wrench 
+        label: 'Farming Tools', 
+        image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=400&q=80', 
+        color: 'from-slate-900/90 via-slate-900/40 to-transparent'
     },
     { 
         name: 'Offers', 
-        label: 'Offers', 
-        image: 'https://images.unsplash.com/photo-1556740714-a8395b3bf30f?auto=format&fit=crop&w=600&q=80', 
-        icon: Gift 
+        label: 'Super Offers', 
+        image: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=400&q=80', 
+        color: 'from-indigo-900/90 via-indigo-900/40 to-transparent'
     },
   ];
 
@@ -65,7 +67,7 @@ export const Catalog: React.FC = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('is_active', true) // Only fetch active products
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -79,47 +81,39 @@ export const Catalog: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
-    const onFocus = () => fetchProducts();
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
   }, [fetchProducts]);
 
-  // Robust Filter Logic
   const filteredProducts = products.filter(p => {
-    // Safety check for null values
     const pCat = p.category ? p.category.toLowerCase().trim() : '';
     const fCat = filter.toLowerCase().trim();
-    
     const pName = p.name ? p.name.toLowerCase() : '';
     const sTerm = searchTerm.toLowerCase();
     
     const matchesSearch = pName.includes(sTerm);
     
     if (filter === 'All') return matchesSearch;
-    
-    // Check if category includes the filter word
     const matchesCategory = pCat.includes(fCat) || fCat.includes(pCat);
     return matchesCategory && matchesSearch;
   });
 
   return (
-    <AppLayout activePage="catalog">
+    <AppLayout activePage="catalog" pageTitle="Store Catalog">
         
         {/* STICKY SEARCH BAR */}
-        <div className="sticky top-0 z-40 bg-[#FFFCF0]/95 backdrop-blur-xl pt-2 pb-4 -mx-4 px-4 transition-all border-b border-[#064E3B]/5 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+        <div className="sticky top-0 z-40 bg-[#F5F5F0]/95 backdrop-blur-xl pt-2 pb-2 -mx-4 px-4 transition-all border-b border-[#064E3B]/10">
             <div className="relative group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#064E3B] transition-colors" size={22} />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#064E3B] transition-colors" size={20} />
                 <input 
                     type="text" 
-                    placeholder="Search beej, urea, dawai..."
+                    placeholder="Search seeds, fertilizer..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-white border border-[#E7E5E4] rounded-full py-4 pl-14 pr-12 focus:outline-none focus:ring-2 focus:ring-[#064E3B] focus:border-transparent shadow-md text-base font-bold text-gray-800 placeholder-gray-400 transition-all"
+                    className="w-full bg-white border border-[#E7E5E4] rounded-2xl py-3.5 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-[#064E3B] focus:border-transparent shadow-sm text-sm font-bold text-gray-800 placeholder-gray-400 transition-all"
                 />
                 {searchTerm && (
                     <button 
                         onClick={() => setSearchTerm('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"
                     >
                         <X size={14} />
                     </button>
@@ -127,51 +121,57 @@ export const Catalog: React.FC = () => {
             </div>
         </div>
 
-        {/* CATEGORY GRID */}
+        {/* CATEGORY SLIDER (Horizontal Scroll) */}
         {!searchTerm && (
             <div className="mb-8 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-4 px-1">
-                    <h3 className="text-lg font-black text-[#064E3B] font-serif">Categories</h3>
+                <div className="flex justify-between items-end mb-4 px-1">
+                    <h3 className="text-lg font-black text-[#064E3B] font-serif tracking-tight">Browse Categories</h3>
                     {filter !== 'All' && (
-                        <button onClick={() => setFilter('All')} className="text-xs font-bold text-gray-500 hover:text-[#064E3B] flex items-center gap-1">
-                            Reset <RefreshCw size={10} />
+                        <button onClick={() => setFilter('All')} className="text-[10px] font-bold text-gray-500 hover:text-[#064E3B] flex items-center gap-1 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm transition-all active:scale-95">
+                            View All <RefreshCw size={10} />
                         </button>
                     )}
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex overflow-x-auto gap-4 pb-6 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
                     {CATEGORIES.map((cat, idx) => {
                         const isActive = filter === cat.name;
                         return (
                             <button
                                 key={cat.name}
                                 onClick={() => setFilter(isActive ? 'All' : cat.name)}
-                                className={`relative h-24 rounded-[20px] overflow-hidden transition-all duration-300 group shadow-sm ${isActive ? 'ring-4 ring-[#064E3B] ring-offset-2 scale-[0.98] brightness-90' : 'hover:scale-[1.02] hover:shadow-lg'}`}
+                                className={`relative flex-shrink-0 w-32 h-40 rounded-[24px] overflow-hidden transition-all duration-300 group snap-start shadow-md active:scale-90 ${
+                                    isActive 
+                                    ? 'ring-4 ring-[#064E3B] scale-[0.95]' 
+                                    : 'hover:scale-[1.02] hover:shadow-xl'
+                                }`}
                                 style={{ animationDelay: `${idx * 50}ms` }}
                             >
-                                {/* Background Image */}
-                                <div className="absolute inset-0 bg-gray-200">
-                                    <img 
-                                        src={cat.image} 
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                                        alt={cat.label}
-                                        loading="lazy" 
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                                    <div className={`absolute inset-0 bg-[#064E3B]/40 transition-opacity duration-300 ${isActive ? 'opacity-60' : 'opacity-0'}`}></div>
-                                </div>
+                                {/* Image */}
+                                <img 
+                                    src={cat.image} 
+                                    className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} 
+                                    alt={cat.label}
+                                    loading="lazy" 
+                                />
                                 
-                                {/* Label & Icon */}
-                                <div className="relative z-10 h-full flex flex-col items-center justify-center p-2 text-white">
-                                    <cat.icon size={20} className="mb-1 opacity-90 drop-shadow-md" />
-                                    <span className="font-bold text-sm text-center leading-tight drop-shadow-md tracking-wide">
+                                {/* Gradient Overlay */}
+                                <div className={`absolute inset-0 bg-gradient-to-t ${cat.color} transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'}`}></div>
+                                
+                                {/* Content */}
+                                <div className="absolute inset-x-0 bottom-0 p-4 text-white z-10 flex flex-col items-center justify-end h-full">
+                                    <span className={`text-sm font-bold text-center leading-tight drop-shadow-lg tracking-wide ${isActive ? 'text-white' : 'text-white/90'}`}>
                                         {cat.label}
                                     </span>
+                                    
+                                    {isActive && (
+                                        <div className="w-8 h-1 bg-white/50 rounded-full mt-2 backdrop-blur-sm animate-pulse"></div>
+                                    )}
                                 </div>
                                 
-                                {/* Active Indicator */}
+                                {/* Active Badge (Optional, subtle) */}
                                 {isActive && (
-                                    <div className="absolute top-2 right-2 w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-sm"></div>
+                                    <div className="absolute top-3 right-3 w-2 h-2 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse"></div>
                                 )}
                             </button>
                         );
@@ -182,34 +182,34 @@ export const Catalog: React.FC = () => {
 
         {/* FILTER STATUS */}
         {filter !== 'All' && (
-            <div className="flex items-center gap-2 mb-4 animate-fade-in">
-                <span className="text-sm font-bold text-gray-400">Showing:</span>
-                <span className="px-3 py-1 bg-[#064E3B] text-white text-xs font-bold rounded-full shadow-sm flex items-center gap-1">
+            <div className="flex items-center gap-2 mb-4 animate-fade-in px-1">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Showing:</span>
+                <span className="px-3 py-1 bg-[#064E3B] text-white text-xs font-bold rounded-full shadow-md flex items-center gap-1.5 transition-all hover:bg-[#053d2e] active:scale-95 cursor-pointer" onClick={() => setFilter('All')}>
                     {filter}
-                    <button onClick={() => setFilter('All')}><X size={12} /></button>
+                    <X size={12} className="opacity-80" />
                 </span>
             </div>
         )}
 
         {/* PRODUCTS GRID */}
         {loading ? (
-           <div className="grid grid-cols-2 gap-4 pb-32">
+           <div className="grid grid-cols-2 gap-4 pb-32 px-1">
              {[1,2,3,4,5,6].map(i => (
-               <div key={i} className="h-64 rounded-2xl bg-white border border-gray-100 animate-pulse shadow-sm"></div>
+               <div key={i} className="h-64 rounded-[24px] bg-white border border-gray-100 animate-pulse shadow-sm"></div>
              ))}
            </div>
         ) : !supabase ? (
-           <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-5 border border-red-100">
-                    <AlertCircle className="text-red-400" size={32} />
+           <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in bg-white rounded-[24px] border border-red-100 p-8 shadow-sm mx-1">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                    <AlertCircle className="text-red-400" size={28} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Connection Error</h3>
-                <p className="text-sm text-gray-500 mt-2 max-w-[220px] font-medium">
-                    Store is currently offline or misconfigured. Please contact support.
+                <h3 className="text-lg font-bold text-gray-800">Connection Error</h3>
+                <p className="text-xs text-gray-500 mt-2 max-w-[200px] font-medium mx-auto">
+                    Please check your internet connection or database configuration.
                 </p>
            </div>
         ) : (
-            <div className="grid grid-cols-2 gap-4 pb-32 min-h-[300px] content-start">
+            <div className="grid grid-cols-2 gap-4 pb-32 min-h-[300px] content-start px-1">
                 {filteredProducts.map((product, index) => (
                     <div key={product.id} style={{ animationDelay: `${index * 50}ms` }} className="animate-fade-in-up">
                         <ProductCard product={product} onAdd={addToCart} />
@@ -217,19 +217,19 @@ export const Catalog: React.FC = () => {
                 ))}
                 
                 {filteredProducts.length === 0 && (
-                    <div className="col-span-2 flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-5 border border-gray-200">
-                            <Filter className="text-gray-300" size={40} />
+                    <div className="col-span-2 flex flex-col items-center justify-center py-16 text-center animate-fade-in">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                            <ShoppingBag className="text-gray-400" size={32} />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800">No products found</h3>
-                        <p className="text-sm text-gray-500 mt-2 max-w-[220px] font-medium">
-                            We couldn't find any items in <span className="text-[#064E3B]">{filter}</span>.
+                        <h3 className="text-lg font-bold text-gray-800">No items found</h3>
+                        <p className="text-xs text-gray-500 mt-1 max-w-[200px] font-medium mx-auto">
+                            Try searching for something else or change the category filter.
                         </p>
                         <button 
                             onClick={() => {setFilter('All'); setSearchTerm('');}} 
-                            className="mt-6 px-6 py-3 bg-[#064E3B] text-white rounded-xl font-bold text-sm shadow-lg hover:bg-[#065E4B] active:scale-95 transition-all"
+                            className="mt-4 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
                         >
-                            View All Products
+                            Clear Filters
                         </button>
                     </div>
                 )}

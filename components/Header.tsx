@@ -1,7 +1,8 @@
 'use client';
-import React from 'react';
-import { Sprout, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Sprout, ShieldCheck, LogIn } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
+import { supabase } from '../services/supabase';
 
 interface HeaderProps {
   title?: string;
@@ -9,6 +10,25 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title }) => {
   const { push } = useNavigation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="px-6 py-4 sticky top-0 z-50 bg-[#FFFCF0]/90 backdrop-blur-md border-b border-[#064E3B]/5 transition-all duration-300">
@@ -28,17 +48,30 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
                 </div>
             </div>
 
-            {/* Right: Admin Badge */}
-            <div 
-               onClick={() => push('/admin')}
-               className="flex items-center gap-1.5 bg-white pl-2 pr-3 py-1.5 rounded-full shadow-sm border border-[#E7E5E4] cursor-pointer select-none hover:bg-gray-50 active:scale-95 transition-all group"
-               title="Store Manager"
-            >
-               <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                    <ShieldCheck size={12} className="text-orange-700" />
-               </div>
-               <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-700">Admin</span>
-            </div>
+            {/* Right: Auth Action */}
+            {isLoggedIn ? (
+                <div 
+                   onClick={() => push('/admin')}
+                   className="flex items-center gap-1.5 bg-white pl-2 pr-3 py-1.5 rounded-full shadow-sm border border-[#E7E5E4] cursor-pointer select-none hover:bg-gray-50 active:scale-95 transition-all group"
+                   title="Store Manager"
+                >
+                   <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                        <ShieldCheck size={12} className="text-orange-700" />
+                   </div>
+                   <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-700">Admin</span>
+                </div>
+            ) : (
+                <div 
+                   onClick={() => push('/login')}
+                   className="flex items-center gap-1.5 bg-white pl-2 pr-3 py-1.5 rounded-full shadow-sm border border-[#E7E5E4] cursor-pointer select-none hover:bg-gray-50 active:scale-95 transition-all group"
+                   title="Login"
+                >
+                   <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                        <LogIn size={12} className="text-emerald-700" />
+                   </div>
+                   <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-700">Login</span>
+                </div>
+            )}
         </div>
         
         {/* Optional Page Title (Dynamic) */}

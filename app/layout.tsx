@@ -1,7 +1,6 @@
 import React from 'react';
 import { Providers } from './providers';
 import { CartDrawer } from '../components/CartDrawer';
-import { AIChatDrawer } from '../components/AIChatDrawer';
 import { ScrollToTop } from '../components/ScrollToTop';
 
 export const metadata = {
@@ -22,7 +21,7 @@ export default function RootLayout({
         <style dangerouslySetInnerHTML={{ __html: `
             @layer theme {
                 :root {
-                    --bg-main: #FFFCF0;
+                    --bg-main: #F5F5F0; /* Warm earthy grey */
                     --text-primary: #064E3B;
                     --text-secondary: #78350F;
                     --text-body: #27272a;
@@ -64,12 +63,27 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
-            <ScrollToTop />
-            <div className="max-w-md mx-auto relative min-h-screen bg-[var(--bg-main)] shadow-2xl overflow-hidden flex flex-col">
-              {children}
-              <CartDrawer />
-              <AIChatDrawer />
-            </div>
+            <>
+                <ScrollToTop />
+                <div className="max-w-md mx-auto relative min-h-screen shadow-2xl overflow-hidden flex flex-col bg-[#F5F5F0]">
+                    {/* Global Background Texture */}
+                    <div className="absolute inset-0 z-0 pointer-events-none">
+                        <img 
+                            src="https://www.transparenttextures.com/patterns/ag-square.png" 
+                            className="w-full h-full object-repeat opacity-[0.4]"
+                            alt="texture"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-[#F5F5F0]/80 to-[#E6E6DC]/90 mix-blend-multiply"></div>
+                    </div>
+
+                    {/* Content Wrapper */}
+                    <div className="relative z-10 flex flex-col flex-grow">
+                        {children}
+                    </div>
+                    
+                    <CartDrawer />
+                </div>
+            </>
         </Providers>
       </body>
     </html>

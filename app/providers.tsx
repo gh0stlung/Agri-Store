@@ -2,10 +2,9 @@
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { CartProvider } from '../context/CartContext';
-import { AIProvider } from '../context/AIContext';
 import { NavigationProvider } from '../context/NavigationContext';
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -19,11 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <NavigationProvider value={navValue}>
-        <AIProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
-        </AIProvider>
+      <CartProvider>
+        {children}
+      </CartProvider>
     </NavigationProvider>
   );
-}
+};

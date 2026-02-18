@@ -150,14 +150,14 @@ export const Admin: React.FC = () => {
              const blob = await res.blob();
              const fileName = `prod_${Date.now()}.png`;
              
-             // Upload to 'products' bucket
+             // Upload to 'product-images' bucket
              const { error: uploadError } = await supabase.storage
-                .from('products')
+                .from('product-images')
                 .upload(fileName, blob, { upsert: true });
              
              if (uploadError) throw uploadError;
              
-             const { data } = supabase.storage.from('products').getPublicUrl(fileName);
+             const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
              finalImageUrl = data.publicUrl;
         }
 
