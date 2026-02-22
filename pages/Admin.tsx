@@ -142,20 +142,31 @@ export const Admin: React.FC = () => {
     
     setUploadingImage(true);
     try {
+        // 1. Check Authentication explicitly before action
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            alert("Security Check Failed: You must be logged in to perform this action.");
+            push('/login');
+            return;
+        }
+
         let finalImageUrl = productForm.image_url;
         
         // Handle Image Upload if base64 (new selection)
         if (finalImageUrl && finalImageUrl.startsWith('data:')) {
              const res = await fetch(finalImageUrl);
              const blob = await res.blob();
-             const fileName = `prod_${Date.now()}.png`;
+             const fileName = `prod_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
              
              // Upload to 'product-images' bucket
-             const { error: uploadError } = await supabase.storage
+             const { error: uploadError, data: uploadData } = await supabase.storage
                 .from('product-images')
-                .upload(fileName, blob, { upsert: true });
+                .upload(fileName, blob, { 
+                    upsert: true,
+                    contentType: 'image/png'
+                });
              
-             if (uploadError) throw uploadError;
+             if (uploadError) throw new Error(`Image Upload Failed: ${uploadError.message}`);
              
              const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
              finalImageUrl = data.publicUrl;
@@ -173,10 +184,10 @@ export const Admin: React.FC = () => {
         
         if (editingId) {
              const { error } = await supabase.from('products').update(payload).eq('id', editingId);
-             if (error) throw error;
+             if (error) throw new Error(`Update Failed: ${error.message}`);
         } else {
              const { error } = await supabase.from('products').insert([payload]);
-             if (error) throw error;
+             if (error) throw new Error(`Insert Failed: ${error.message}`);
         }
         
         resetForms();
@@ -184,7 +195,7 @@ export const Admin: React.FC = () => {
         setIsFormOpen(false);
     } catch (e: any) {
         console.error(e);
-        alert("Error saving product: " + e.message);
+        alert(e.message || "Error saving product");
     } finally {
         setUploadingImage(false);
     }
@@ -420,11 +431,21 @@ export const Admin: React.FC = () => {
                                         </div>
                                     </div>
                                     
-                                    <div className="md:col-span-2 flex items-center gap-2 p-2.5 bg-gray-50 rounded-[12px] border border-[#E7E5E4] cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setProductForm({...productForm, is_active: !productForm.is_active})}>
-                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${productForm.is_active !== false ? 'bg-[#064E3B] border-[#064E3B]' : 'bg-white border-gray-400'}`}>
-                                            {productForm.is_active !== false && <CheckCircle size={12} className="text-white" />}
-                                        </div>
-                                        <span className="text-xs font-bold text-gray-700">Show in Catalog</span>
+                                    <div className="md:col-span-2 flex items-center justify-between p-3 bg-gray-50 rounded-[12px] border border-[#E7E5E4]">
+                                        <span className="text-sm font-bold text-gray-700">Show in Catalog</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setProductForm({ ...productForm, is_active: !productForm.is_active })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                                                productForm.is_active !== false ? 'bg-[#064E3B]' : 'bg-gray-300'
+                                            }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    productForm.is_active !== false ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
                                     </div>
 
                                     <button type="submit" disabled={uploadingImage} className="md:col-span-2 bg-[#064E3B] text-white py-3.5 rounded-[12px] font-bold shadow-lg hover:bg-[#053d2e] active:scale-[0.98] transition-all text-sm flex justify-center items-center gap-2 mt-1">
