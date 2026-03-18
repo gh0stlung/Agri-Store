@@ -195,7 +195,7 @@ export const Login: React.FC = () => {
 
             <div className="mt-6 pt-4 border-t border-white/5 text-center">
                 <Link href="/admin-login" className="text-[10px] font-bold text-emerald-200/40 hover:text-emerald-200/70 uppercase tracking-widest transition-colors">
-                    Admin Access
+                    Login as Admin
                 </Link>
             </div>
           </div>

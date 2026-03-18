@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Sprout, ShieldCheck, LogIn } from 'lucide-react';
+import { Sprout, LogIn, User } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { supabase } from '@/lib/supabase';
 
@@ -10,21 +10,21 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title }) => {
   const { push } = useNavigation();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     if (!supabase) return;
 
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
+      setUser(session?.user || null);
     });
 
     return () => subscription.unsubscribe();
@@ -48,30 +48,29 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
                 </div>
             </div>
 
-            {/* Right: Auth Action */}
-            {isLoggedIn ? (
-                <div 
-                   onClick={() => push('/admin')}
-                   className="flex items-center gap-1.5 bg-white pl-2 pr-3 py-1.5 rounded-full shadow-sm border border-[#E7E5E4] cursor-pointer select-none hover:bg-gray-50 active:scale-95 transition-all group"
-                   title="Store Manager"
-                >
-                   <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                        <ShieldCheck size={12} className="text-orange-700" />
-                   </div>
-                   <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-700">Admin</span>
-                </div>
-            ) : (
-                <div 
-                   onClick={() => push('/login')}
-                   className="flex items-center gap-1.5 bg-white pl-2 pr-3 py-1.5 rounded-full shadow-sm border border-[#E7E5E4] cursor-pointer select-none hover:bg-gray-50 active:scale-95 transition-all group"
-                   title="Login"
-                >
-                   <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                        <LogIn size={12} className="text-emerald-700" />
-                   </div>
-                   <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-700">Login</span>
-                </div>
-            )}
+            {/* Right: Profile/Login Button */}
+            <div 
+               style={{ position: 'absolute', top: '10px', right: '10px' }}
+            >
+                {user ? (
+                    <div 
+                       onClick={() => push('/profile')}
+                       className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shadow-sm border border-emerald-200 cursor-pointer active:scale-95 transition-transform"
+                       title="Profile"
+                    >
+                       <User size={16} className="text-emerald-800" />
+                    </div>
+                ) : (
+                    <div 
+                       onClick={() => push('/login')}
+                       className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-sm border border-[#E7E5E4] cursor-pointer select-none hover:bg-gray-50 active:scale-95 transition-all"
+                       title="Login"
+                    >
+                       <LogIn size={14} className="text-emerald-700" />
+                       <span className="text-xs font-bold text-gray-700">Login</span>
+                    </div>
+                )}
+            </div>
         </div>
         
         {/* Optional Page Title (Dynamic) */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Admin } from './pages/Admin';
@@ -31,30 +31,16 @@ const AppContent: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         
+        {/* Public Routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/catalog" element={<Catalog />} />
+        <Route path="/track" element={<TrackOrder />} />
+        <Route path="/contact" element={<Contact />} />
+        
         {/* Protected Routes */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        } />
-        <Route path="/catalog" element={
-          <ProtectedRoute>
-            <Catalog />
-          </ProtectedRoute>
-        } />
         <Route path="/order" element={
           <ProtectedRoute>
             <Order />
-          </ProtectedRoute>
-        } />
-        <Route path="/track" element={
-          <ProtectedRoute>
-            <TrackOrder />
-          </ProtectedRoute>
-        } />
-        <Route path="/contact" element={
-          <ProtectedRoute>
-            <Contact />
           </ProtectedRoute>
         } />
         <Route path="/admin" element={
@@ -63,12 +49,8 @@ const AppContent: React.FC = () => {
           </AdminProtectedRoute>
         } />
         
-        {/* Catch-all route - Protected */}
-        <Route path="*" element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        } />
+        {/* Catch-all route */}
+        <Route path="*" element={<Home />} />
       </Routes>
       
       {/* Floating Cart Button */}

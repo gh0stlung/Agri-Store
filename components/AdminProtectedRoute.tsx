@@ -1,60 +1,54 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) => {
-  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [roleLoading, setRoleLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const checkAdmin = async () => {
-      if (!authLoading) {
-        if (!user) {
-          navigate('/login', { replace: true });
-          return;
-        }
-
+      if (!authLoading && user) {
         try {
-          const { data: profile, error } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
 
-          if (error || profile?.role !== 'admin') {
-            navigate('/', { replace: true });
-          } else {
+          if (profile?.role === 'admin') {
             setIsAdmin(true);
           }
         } catch (err) {
-          navigate('/', { replace: true });
+          console.error('Admin check error:', err);
         } finally {
           setRoleLoading(false);
         }
+      } else if (!authLoading && !user) {
+        setRoleLoading(false);
       }
     };
 
     checkAdmin();
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading]);
 
   if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[#F1F5F9]">
-        <Loader2 className="animate-spin text-[#064E3B]" size={32} />
-      </div>
-    );
+    return <p style={{ textAlign: "center", marginTop: "50px", fontWeight: "bold", color: "#064E3B" }}>Loading...</p>;
   }
 
-  if (!user || !isAdmin) {
-    return null;
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

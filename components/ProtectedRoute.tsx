@@ -1,32 +1,21 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const navigate = useNavigate();
   const { user, loading } = useAuth();
-
-  React.useEffect(() => {
-    if (!loading && !user) {
-      navigate('/login', { replace: true });
-    }
-  }, [user, loading, navigate]);
+  const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[#F1F5F9]">
-        <Loader2 className="animate-spin text-[#064E3B]" size={32} />
-      </div>
-    );
+    return <p style={{ textAlign: "center", marginTop: "50px", fontWeight: "bold", color: "#064E3B" }}>Loading...</p>;
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

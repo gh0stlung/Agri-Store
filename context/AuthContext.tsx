@@ -16,18 +16,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check active sessions and sets the user
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      
+      if (user) {
         await supabase.from("profiles").upsert({
-          id: session.user.id
+          id: user.id
         });
       }
-      setUser(session?.user ?? null);
+      setUser(user);
       setLoading(false);
     };
 
-    getSession();
+    getUser();
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {

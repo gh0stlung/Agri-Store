@@ -59,20 +59,20 @@ export const Order: React.FC = () => {
         return;
       }
 
-      const { data: userData } = await supabase.auth.getUser();
-      const currentUser = userData.user;
+      const { data } = await supabase.auth.getUser();
 
-      if (!currentUser) {
-        alert("Please login first");
+      if (!data.user) {
+        alert("Login required");
+        window.location.href = "/login";
         return;
       }
 
       setLoading(true);
       const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
-      const { data, error } = await supabase.from("orders").insert([
+      const { data: orderData, error } = await supabase.from("orders").insert([
         {
-          user_id: currentUser.id,
+          user_id: data.user.id,
           customer_name: formData.name || profile?.name || "Guest",
           phone: formData.phone || profile?.phone || "",
           address: formData.address || profile?.address || "",
@@ -87,7 +87,7 @@ export const Order: React.FC = () => {
         return;
       }
 
-      if (data) setConfirmedOrderId(data.id.slice(0, 8));
+      if (orderData) setConfirmedOrderId(orderData.id.slice(0, 8));
 
       // WhatsApp logic (keeping it to not break the design/flow)
       let message = "🛒 *New Order*%0A%0A";

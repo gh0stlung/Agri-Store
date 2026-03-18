@@ -2,22 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { AppLayout } from '../components/AppLayout';
 import { MapPin, Phone, Clock, Shield, ExternalLink, Mail } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '../context/AuthContext';
 
 export const Contact: React.FC = () => {
-  const { user } = useAuth();
   const [status, setStatus] = useState("Checking...");
-  const [err, setErr] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [userInfo, setUserInfo] = useState("");
 
   useEffect(() => {
     const check = async () => {
-      const { error } = await supabase.from("orders").select("*").limit(1);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData.user;
 
-      if (error) {
-        setStatus("❌ Error");
-        setErr(error.message);
-      } else {
-        setStatus("✅ Connected");
+        if (user) {
+          setUserInfo(user.email || "Logged in");
+        } else {
+          setUserInfo("Not logged in");
+        }
+
+        const { error } = await supabase.from("orders").select("id").limit(1);
+
+        if (error) {
+          setStatus("❌ DB Error");
+          setErrorMsg(error.message);
+        } else {
+          setStatus("✅ Connected");
+        }
+
+      } catch (err: any) {
+        setStatus("❌ System Error");
+        setErrorMsg(err.message);
       }
     };
 
@@ -198,13 +212,14 @@ export const Contact: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Debug Panel */}
-                <div className="mt-8 p-3 bg-gray-50 rounded-xl border border-gray-200 text-[10px] text-left font-mono text-gray-400 opacity-60">
-                    <p className="font-bold mb-1 uppercase tracking-tighter">Debug Info</p>
-                    <p>Status: {status}</p>
-                    <p className="truncate">Error: {err || "None"}</p>
-                    <p>User: {user?.email || "Not logged in"}</p>
+                {/* Developer Status Panel */}
+                <div className="fixed bottom-4 left-4 z-50 p-4 bg-black border border-emerald-500/30 rounded-lg shadow-2xl font-mono text-[10px] text-emerald-400 max-w-[250px] overflow-hidden">
+                    <p className="font-bold text-yellow-400 mb-1 uppercase tracking-tighter">Developer Panel</p>
+                    <p className="break-words">Status: <span className={status.includes("✅") ? "text-green-400" : "text-red-400"}>{status}</span></p>
+                    <p className="break-words">User: <span className="text-emerald-300">{userInfo}</span></p>
+                    {errorMsg && <p className="break-words text-red-400">Error: {errorMsg}</p>}
                 </div>
+
             </div>
         </div>
 
