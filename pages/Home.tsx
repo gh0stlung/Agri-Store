@@ -3,7 +3,7 @@ import { Link } from '../components/Link';
 import { useNavigation } from '../context/NavigationContext';
 import { ArrowRight, Bell, Megaphone, ChevronRight, Package, Clock } from 'lucide-react';
 import { AppLayout } from '../components/AppLayout';
-import { supabase } from '../services/supabase';
+import { supabase } from '@/lib/supabase';
 import { StoreUpdate } from '../types';
 
 export const Home: React.FC = () => {

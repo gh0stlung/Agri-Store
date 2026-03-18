@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/supabase';
+import { supabase } from '@/lib/supabase';
 import { useNavigation } from '../context/NavigationContext';
 import { Lock, ArrowLeft, Loader2, Mail, ShieldCheck } from 'lucide-react';
 import { Link } from '../components/Link';

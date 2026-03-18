@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
+import { supabase } from '@/lib/supabase';
 import { useNavigation } from '../context/NavigationContext';
 import { Product, Order, StoreUpdate } from '../types';
 import { 

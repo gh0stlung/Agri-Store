@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigation } from '../context/NavigationContext';
 import { useCart } from '../context/CartContext';
-import { supabase } from '../services/supabase';
+import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CheckCircle, Loader2, MessageCircle, MapPin, User, Phone, Package, ShoppingBag } from 'lucide-react';
 import { Link } from '../components/Link';
 
@@ -25,8 +25,12 @@ export const Order: React.FC = () => {
     }
   }, [cart, orderComplete, push]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cart || cart.length === 0) {
+      alert("Cart is empty");
+      return;
+    }
     setLoading(true);
 
     const orderData = {
@@ -56,16 +60,26 @@ export const Order: React.FC = () => {
 
       setConfirmedOrderId(orderId);
 
-      const itemList = cart.map((item, i) => 
-        `${i + 1}. ${item.name} (${item.quantity} ${item.unit || 'unit'})`
-      ).join('\n');
+      let message = "🛒 *New Order*%0A%0A";
+      message += `*Order ID: ${orderId}*%0A%0A`;
 
-      const message = `*New Order: ${orderId}*\n------------------\n*Customer:* ${formData.name}\n*Mobile:* ${formData.phone}\n*Address:* ${formData.address}\n\n*Items Ordered:*\n${itemList}\n\n*Total Amount:* ₹${cartTotal}\n------------------\nPlease confirm delivery.`;
+      cart.forEach((item, index) => {
+        message += `*${index + 1}. ${item.name}*%0A`;
+        message += `Qty: ${item.quantity}%0A`;
+        message += `Price: ₹${item.price}%0A%0A`;
+      });
 
-      const whatsappUrl = `https://wa.me/919368340997?text=${encodeURIComponent(message)}`;
-      
-      // We open WhatsApp in a new tab/window so the user stays on the success screen
-      window.open(whatsappUrl, '_blank');
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      message += `💰 *Total: ₹${total}*%0A%0A`;
+
+      message += `👤 Name: ${formData.name}%0A`;
+      message += `📞 Phone: ${formData.phone}%0A`;
+      message += `📍 Address: ${formData.address}%0A`;
+
+      const url = `https://wa.me/919368340997?text=${message}`;
+
+      window.open(url, "_blank");
 
       setOrderComplete(true);
       clearCart();
@@ -161,7 +175,7 @@ export const Order: React.FC = () => {
         </div>
 
         {/* Details Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleOrder} className="space-y-4">
             <h3 className="text-sm font-bold text-[#78350F] uppercase tracking-wider mb-2 ml-1">Delivery Details</h3>
             
             <div className="relative group">

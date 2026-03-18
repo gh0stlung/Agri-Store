@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sprout, ShieldCheck, LogIn } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
-import { supabase } from '../services/supabase';
+import { supabase } from '@/lib/supabase';
 
 interface HeaderProps {
   title?: string;

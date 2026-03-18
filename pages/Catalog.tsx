@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { supabase } from '../services/supabase';
+import { supabase } from '@/lib/supabase';
 import { ProductCard } from '../components/ProductCard';
 import { AppLayout } from '../components/AppLayout';
 import { useCart } from '../context/CartContext';
