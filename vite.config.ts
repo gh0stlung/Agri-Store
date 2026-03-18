@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@/lib': path.resolve(__dirname, 'src/lib'),
       '@': path.resolve(__dirname, './'),
       '@components': path.resolve(__dirname, 'components'),
       '@pages': path.resolve(__dirname, 'pages'),

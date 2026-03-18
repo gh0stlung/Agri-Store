@@ -11,8 +11,23 @@ export const Home: React.FC = () => {
   const [updates, setUpdates] = useState<StoreUpdate[]>([]);
   const [loadingUpdates, setLoadingUpdates] = useState(true);
 
+  const [testResult, setTestResult] = useState("Testing...");
+
   useEffect(() => {
     fetchUpdates();
+    
+    // Supabase Connection Test
+    const test = async () => {
+      const { error } = await supabase.from("orders").select("*");
+
+      if (error) {
+        setTestResult("❌ Error: " + error.message);
+      } else {
+        setTestResult("✅ Connected");
+      }
+    };
+
+    test();
   }, []);
 
   const fetchUpdates = async () => {
@@ -43,6 +58,9 @@ export const Home: React.FC = () => {
 
   return (
     <AppLayout activePage="home">
+        <p style={{ color: "red", textAlign: "center", fontWeight: "bold", marginTop: "10px" }}>
+          {testResult}
+        </p>
         
         {/* HERO SECTION - Polished Spacing & Alignment */}
         <div className="relative mt-0 min-h-[360px] h-auto rounded-[28px] overflow-hidden shadow-2xl group animate-fade-in bg-gray-900 flex flex-col justify-center">
