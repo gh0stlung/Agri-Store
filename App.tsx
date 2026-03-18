@@ -20,7 +20,7 @@ const AppContent: React.FC = () => {
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
 
   return (
-    <div className="max-w-md mx-auto relative min-h-screen bg-[var(--bg-main)] shadow-2xl overflow-hidden flex flex-col">
+    <div className="max-w-md mx-auto relative min-h-[100dvh] bg-[var(--bg-main)] shadow-2xl flex flex-col">
       <ScrollToTop />
       
       <Routes>
@@ -38,6 +38,9 @@ const AppContent: React.FC = () => {
                 <Admin />
             </ProtectedRoute>
         } />
+        
+        {/* Catch-all route to prevent 'No routes matched location' */}
+        <Route path="*" element={<Home />} />
       </Routes>
       
       {/* Floating Cart Button */}

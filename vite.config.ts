@@ -18,9 +18,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
-    strictPort: false,
-    historyApiFallback: true,
+    port: 3000,
+    strictPort: true,
   },
   build: {
     outDir: 'dist',

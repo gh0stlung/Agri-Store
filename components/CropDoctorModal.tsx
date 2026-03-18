@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sprout, Sparkles, Loader2, Stethoscope, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
+import { X, Sparkles, Loader2, Stethoscope, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 interface CropDoctorModalProps {

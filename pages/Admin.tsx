@@ -5,7 +5,7 @@ import { Product, Order, StoreUpdate } from '../types';
 import { 
   Plus, Trash2, Edit2, LogOut, Save, X, ArrowLeft, 
   Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon, Sparkles, Wand2,
-  Search, Calendar, MapPin, Phone, CheckCircle, Clock, AlertTriangle
+  Search, Calendar, MapPin, Phone, Clock, AlertTriangle
 } from 'lucide-react';
 import { Link } from '../components/Link';
 import { GoogleGenAI } from "@google/genai";
@@ -102,8 +102,9 @@ export const Admin: React.FC = () => {
       setIsAutofilling(true);
       
       try {
-          const apiKey = process.env.API_KEY;
-          if (!apiKey) throw new Error("No API Key");
+          // Use a safer way to access environment variables in Vite
+          const apiKey = (import.meta as any).env?.VITE_API_KEY || (typeof process !== 'undefined' ? (process.env as any).API_KEY : undefined);
+          if (!apiKey) throw new Error("No API Key configured. Please set VITE_API_KEY.");
           
           const ai = new GoogleGenAI({ apiKey });
           const response = await ai.models.generateContent({
@@ -159,7 +160,7 @@ export const Admin: React.FC = () => {
              const fileName = `prod_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
              
              // Upload to 'product-images' bucket
-             const { error: uploadError, data: uploadData } = await supabase.storage
+             const { error: uploadError } = await supabase.storage
                 .from('product-images')
                 .upload(fileName, blob, { 
                     upsert: true,
@@ -240,7 +241,7 @@ export const Admin: React.FC = () => {
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (loading) return (
-      <div className="flex items-center justify-center min-h-screen bg-[#FFFCF0]">
+      <div className="flex items-center justify-center min-h-[100dvh] bg-[#FFFCF0]">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#064E3B]"></div>
             <p className="text-[#064E3B] font-bold text-sm">Loading Dashboard...</p>
@@ -250,7 +251,7 @@ export const Admin: React.FC = () => {
   
   if (!supabase) {
     return (
-        <div className="min-h-screen bg-[#FFFCF0] flex items-center justify-center p-6">
+        <div className="min-h-[100dvh] bg-[#FFFCF0] flex items-center justify-center p-6">
             <div className="bg-white p-8 rounded-[24px] shadow-xl text-center max-w-md w-full border border-red-100">
                 <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
                     <AlertTriangle size={32} />
@@ -268,7 +269,7 @@ export const Admin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFCF0] pb-32 text-gray-800 font-['Plus_Jakarta_Sans']">
+    <div className="min-h-[100dvh] bg-[#FFFCF0] pb-32 text-gray-800 font-['Plus_Jakarta_Sans']">
       
       {/* Top Navigation */}
       <nav className="bg-[#FFFCF0]/95 backdrop-blur-md border-b border-[#E7E5E4] sticky top-0 z-40 px-4 py-3 shadow-sm">
@@ -448,7 +449,7 @@ export const Admin: React.FC = () => {
                                         </button>
                                     </div>
 
-                                    <button type="submit" disabled={uploadingImage} className="md:col-span-2 bg-[#064E3B] text-white py-3.5 rounded-[12px] font-bold shadow-lg hover:bg-[#053d2e] active:scale-[0.98] transition-all text-sm flex justify-center items-center gap-2 mt-1">
+                                    <button type="submit" disabled={uploadingImage} className="md:col-span-2 bg-[#064E3B] text-white py-4 rounded-[12px] font-bold shadow-lg hover:bg-[#053d2e] active:scale-[0.98] transition-all text-sm flex justify-center items-center gap-2 mt-2">
                                         <Save size={18} />
                                         {editingId ? 'Update Product' : 'Save Product'}
                                     </button>
@@ -462,7 +463,7 @@ export const Admin: React.FC = () => {
                     {filteredProducts.map((p) => (
                         <div key={p.id} className={`bg-white rounded-[16px] p-3 shadow-sm border border-[#E7E5E4] flex gap-3 transition-all hover:border-[#064E3B]/20 ${p.is_active === false ? 'opacity-60 grayscale' : ''}`}>
                              <div className="w-16 h-16 rounded-[10px] bg-gray-100 flex-shrink-0 overflow-hidden border border-[#E7E5E4]">
-                                <img src={p.image_url || 'https://via.placeholder.com/100'} className="w-full h-full object-cover" alt={p.name} />
+                                <img src={p.image_url || 'https://via.placeholder.com/100'} className="w-full h-full object-cover" alt={p.name} loading="lazy" />
                              </div>
                              <div className="flex-1 flex flex-col justify-between py-0.5">
                                 <div>
@@ -605,12 +606,6 @@ export const Admin: React.FC = () => {
             </div>
         )}
       </div>
-
-      <style>{`
-        .input-dark {
-            @apply w-full py-2.5 px-3 rounded-[12px] border border-[#E7E5E4] bg-white focus:ring-2 focus:ring-[#064E3B] outline-none transition-all text-sm font-bold text-gray-800 placeholder-gray-400;
-        }
-      `}</style>
     </div>
   );
 };

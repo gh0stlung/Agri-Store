@@ -136,7 +136,10 @@ export const Home: React.FC = () => {
             
             <div className="space-y-3">
                 {loadingUpdates ? (
-                    <div className="bg-white p-6 rounded-[20px] animate-pulse h-24 shadow-sm border border-gray-100"></div>
+                    <div className="flex flex-col items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#064E3B] mb-3"></div>
+                        <p className="text-[#064E3B] font-bold text-xs">Loading Updates...</p>
+                    </div>
                 ) : updates.length === 0 ? (
                     <div className="bg-white p-8 rounded-[20px] border border-dashed border-[#E7E5E4] text-center text-gray-400 font-medium text-xs">
                         No recent updates.

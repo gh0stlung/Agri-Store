@@ -36,7 +36,7 @@ export const Contact: React.FC = () => {
                     </div>
                     <h1 className="text-3xl font-black font-serif mb-2 tracking-tight drop-shadow-sm">New Nikhil<br/>Khad Bhandar</h1>
                     <div className="h-1 w-12 bg-emerald-400/50 mx-auto rounded-full mb-3"></div>
-                    <p className="text-emerald-100 font-medium text-xs tracking-widest uppercase opacity-80">Serving Farmers Since 2015</p>
+                    <p className="text-emerald-100 font-medium text-xs tracking-widest uppercase opacity-80">Serving Farmers Since 2005</p>
                 </div>
             </div>
 
@@ -157,12 +157,25 @@ export const Contact: React.FC = () => {
             </div>
 
             {/* Footer Credits - Extra Bottom Padding for WhatsApp Button */}
-            <div className="text-center pt-10 pb-24 opacity-50">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
-                <p className="text-[10px] font-bold text-[#78350F] tracking-wider">
-                    EST. 2015 • GANJDUNDWARA<br/>
-                    Developer & Manager
+            <div className="text-center pt-10 pb-24">
+                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4 opacity-50"></div>
+                <p className="text-[10px] font-bold text-[#78350F] tracking-wider opacity-50">
+                    EST. 2005 • GANJDUNDWARA<br/>
+                    Manager: Abhay
                 </p>
+                <div className="mt-4">
+                    <p className="text-[9px] font-bold text-gray-400">
+                        Developer: {' '}
+                        <a 
+                            href="https://torn-portfolio.vercel.app" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-[#22c55e] [text-shadow:0_0_8px_rgba(34,197,94,0.4)] hover:[text-shadow:0_0_12px_rgba(34,197,94,0.8)] transition-all duration-300"
+                        >
+                            Torn
+                        </a>
+                    </p>
+                </div>
             </div>
         </div>
 

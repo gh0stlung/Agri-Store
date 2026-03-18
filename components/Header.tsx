@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
   }, []);
 
   return (
-    <header className="px-6 py-4 sticky top-0 z-50 bg-[#FFFCF0]/90 backdrop-blur-md border-b border-[#064E3B]/5 transition-all duration-300">
+    <header className="px-[10px] py-[8px] sticky top-0 z-50 bg-[#FFFCF0]/90 backdrop-blur-md border-b border-[#064E3B]/5 transition-all duration-300">
         <div className="flex items-center justify-between">
             {/* Left: Brand Identity */}
             <div className="flex items-center gap-3" onClick={() => push('/')}>
@@ -76,9 +76,9 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
         
         {/* Optional Page Title (Dynamic) */}
         {title && (
-            <div className="mt-4 animate-fade-in">
-                <h2 className="text-2xl font-black text-[#064E3B] tracking-tight">{title}</h2>
-                <div className="w-12 h-1 bg-[#064E3B] rounded-full mt-1.5 opacity-20"></div>
+            <div className="mt-[8px] animate-fade-in">
+                <h2 className="text-[20px] font-black text-[#064E3B] tracking-tight leading-none">{title}</h2>
+                <div className="w-10 h-1 bg-[#064E3B] rounded-full mt-[4px] opacity-20"></div>
             </div>
         )}
     </header>

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { X, Send, Bot, User, Sprout, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
+import { Send, Bot, Loader2, ArrowLeft, Sprout } from 'lucide-react';
 import { useAI } from '../context/AIContext';
 
 interface Message {

@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
 
 export const CartDrawer: React.FC = () => {
-  const { cart, cartTotal, updateQuantity, removeFromCart, isCartOpen, setIsCartOpen } = useCart();
+  const { cart, cartTotal, updateQuantity, isCartOpen, setIsCartOpen } = useCart();
   const { push } = useNavigation();
 
   const handleCheckout = () => {
@@ -61,6 +61,7 @@ export const CartDrawer: React.FC = () => {
                   src={item.image_url || 'https://via.placeholder.com/80'} 
                   alt={item.name} 
                   className="w-24 h-24 object-cover rounded-[16px] bg-gray-100"
+                  loading="lazy"
                 />
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>

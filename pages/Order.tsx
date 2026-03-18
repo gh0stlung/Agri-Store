@@ -80,7 +80,7 @@ export const Order: React.FC = () => {
 
   if (orderComplete) {
     return (
-      <div className="min-h-screen bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
+      <div className="min-h-[100dvh] bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
         {/* Confetti / Decoration Background */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
             <div className="absolute top-10 left-10 text-emerald-200 opacity-20"><ShoppingBag size={64} /></div>
@@ -95,7 +95,7 @@ export const Order: React.FC = () => {
             <p className="text-[#78350F] mb-6 font-medium text-sm">Thank you, {formData.name}.<br/>WhatsApp has been opened with your order.</p>
             
             <div className="bg-emerald-50 rounded-xl p-4 mb-6 border border-emerald-100">
-                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1">Track Your Order</p>
+                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1">Order ID: {confirmedOrderId}</p>
                 <p className="text-[10px] text-emerald-600 leading-relaxed">
                     You can track your order status anytime using your mobile number <strong>{formData.phone}</strong>.
                 </p>
@@ -116,7 +116,7 @@ export const Order: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)]">
+    <div className="min-h-[100dvh] bg-[var(--bg-main)]">
       {/* Header */}
       <div className="p-4 flex items-center gap-3 border-b border-[#E7E5E4] bg-white sticky top-0 z-40 shadow-sm">
         <button onClick={() => back()} className="p-2 -ml-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">

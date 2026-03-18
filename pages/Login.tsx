@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useNavigation } from '../context/NavigationContext';
-import { Lock, ArrowLeft, Loader2, Mail, Sprout, ShieldCheck } from 'lucide-react';
+import { Lock, ArrowLeft, Loader2, Mail, ShieldCheck } from 'lucide-react';
 import { Link } from '../components/Link';
 
 export const Login: React.FC = () => {
@@ -50,6 +50,9 @@ export const Login: React.FC = () => {
             src="https://images.unsplash.com/photo-1599583733055-6b2f7f185e3c?auto=format&fit=crop&w=1920&q=80" 
             alt="Agriculture Background" 
             className="w-full h-full object-cover opacity-60"
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1920&q=80';
+            }}
           />
           {/* Heavy Dark Overlay for Text Readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#001E15] via-[#064E3B]/90 to-[#001E15]/80 mix-blend-multiply"></div>

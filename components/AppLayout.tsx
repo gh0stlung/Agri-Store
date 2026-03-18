@@ -10,10 +10,10 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, activePage, pageTitle }) => {
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] max-w-md mx-auto relative overflow-hidden flex flex-col shadow-2xl">
+    <div className="max-w-[420px] mx-auto w-full bg-[#f7f5ef] min-h-screen relative flex flex-col shadow-2xl">
         <Header title={pageTitle} />
-        {/* Added extra bottom padding (pb-36) to ensure content clears the floating bottom nav */}
-        <main key={activePage} className="p-4 space-y-5 pb-36 flex-grow relative z-10 animate-fade-in">
+        {/* Added extra bottom padding (pb-[80px]) to ensure content clears the floating bottom nav */}
+        <main key={activePage} className="p-[10px] space-y-[12px] pb-[80px] flex-grow relative z-10 animate-fade-in">
             {children}
         </main>
         <BottomNav activePage={activePage} />

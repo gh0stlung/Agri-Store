@@ -1,0 +1,7 @@
+/* Base styles are handled by Tailwind and AppLayout.tsx */
+/* Removing global img max-height as it breaks background images in Hero sections */
+
+h1, .title {
+  font-size: 20px !important;
+  margin-bottom: 8px !important;
+}
