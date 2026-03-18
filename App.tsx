@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-route
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Admin } from './pages/Admin';
+import { AdminLogin } from './pages/AdminLogin';
 import { Catalog } from './pages/Catalog';
 import { Order } from './pages/Order';
 import { TrackOrder } from './pages/TrackOrder';
@@ -13,8 +14,10 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { ShoppingBag } from 'lucide-react';
 import { CartProvider, useCart } from './context/CartContext';
 import { AIProvider } from './context/AIContext';
+import { AuthProvider } from './context/AuthContext';
 import { NavigationProvider } from './context/NavigationContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 
 const AppContent: React.FC = () => {
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
@@ -24,23 +27,48 @@ const AppContent: React.FC = () => {
       <ScrollToTop />
       
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/catalog" element={<Catalog />} />
+        {/* Login Routes - Public */}
         <Route path="/login" element={<Login />} />
-        <Route path="/order" element={<Order />} />
-        <Route path="/track" element={<TrackOrder />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
         
-        {/* Protected Admin Route */}
+        {/* Protected Routes */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        } />
+        <Route path="/catalog" element={
+          <ProtectedRoute>
+            <Catalog />
+          </ProtectedRoute>
+        } />
+        <Route path="/order" element={
+          <ProtectedRoute>
+            <Order />
+          </ProtectedRoute>
+        } />
+        <Route path="/track" element={
+          <ProtectedRoute>
+            <TrackOrder />
+          </ProtectedRoute>
+        } />
+        <Route path="/contact" element={
+          <ProtectedRoute>
+            <Contact />
+          </ProtectedRoute>
+        } />
         <Route path="/admin" element={
-            <ProtectedRoute>
-                <Admin />
-            </ProtectedRoute>
+          <AdminProtectedRoute>
+            <Admin />
+          </AdminProtectedRoute>
         } />
         
-        {/* Catch-all route to prevent 'No routes matched location' */}
-        <Route path="*" element={<Home />} />
+        {/* Catch-all route - Protected */}
+        <Route path="*" element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        } />
       </Routes>
       
       {/* Floating Cart Button */}
@@ -77,9 +105,11 @@ const AppProviderWrapper = () => {
     return (
         <NavigationProvider value={navValue}>
              <AIProvider>
-                <CartProvider>
-                    <AppContent />
-                </CartProvider>
+                <AuthProvider>
+                    <CartProvider>
+                        <AppContent />
+                    </CartProvider>
+                </AuthProvider>
              </AIProvider>
         </NavigationProvider>
     );

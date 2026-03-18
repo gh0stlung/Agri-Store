@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigation } from '../context/NavigationContext';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CheckCircle, Loader2, MessageCircle, MapPin, User, Phone, Package, ShoppingBag } from 'lucide-react';
 import { Link } from '../components/Link';
@@ -8,85 +9,106 @@ import { Link } from '../components/Link';
 export const Order: React.FC = () => {
   const { push, back } = useNavigation();
   const { cart, cartTotal, clearCart } = useCart();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     address: ''
   });
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
 
   // Redirect if cart is empty and not completed
-  React.useEffect(() => {
+  useEffect(() => {
     if (cart.length === 0 && !orderComplete) {
       push('/catalog');
     }
   }, [cart, orderComplete, push]);
 
+  // Fetch profile and pre-fill form
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (data && !error) {
+          setProfile(data);
+          setFormData({
+            name: data.name || '',
+            phone: data.phone || '',
+            address: data.address || ''
+          });
+        }
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cart || cart.length === 0) {
-      alert("Cart is empty");
-      return;
-    }
-    setLoading(true);
-
-    const orderData = {
-      customer_name: formData.name,
-      phone: formData.phone,
-      address: formData.address,
-      items: cart,
-      total_price: cartTotal,
-      status: 'pending',
-      created_at: new Date().toISOString()
-    };
-
     try {
-      let orderId = 'ORD-' + Math.floor(1000 + Math.random() * 9000);
-
-      if (supabase) {
-        const { data, error } = await supabase
-            .from('orders')
-            .insert([orderData])
-            .select()
-            .single();
-        if (error) throw error;
-        if (data) orderId = data.id.slice(0, 8);
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!cart || cart.length === 0) {
+        alert("Cart empty");
+        return;
       }
 
-      setConfirmedOrderId(orderId);
+      const { data: userData } = await supabase.auth.getUser();
+      const currentUser = userData.user;
 
+      if (!currentUser) {
+        alert("Please login first");
+        return;
+      }
+
+      setLoading(true);
+      const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+
+      const { data, error } = await supabase.from("orders").insert([
+        {
+          user_id: currentUser.id,
+          customer_name: formData.name || profile?.name || "Guest",
+          phone: formData.phone || profile?.phone || "",
+          address: formData.address || profile?.address || "",
+          items: cart,
+          total: total,
+          status: "pending"
+        },
+      ]).select().single();
+
+      if (error) {
+        alert("❌ Order failed: " + error.message);
+        return;
+      }
+
+      if (data) setConfirmedOrderId(data.id.slice(0, 8));
+
+      // WhatsApp logic (keeping it to not break the design/flow)
       let message = "🛒 *New Order*%0A%0A";
-      message += `*Order ID: ${orderId}*%0A%0A`;
-
       cart.forEach((item, index) => {
         message += `*${index + 1}. ${item.name}*%0A`;
         message += `Qty: ${item.quantity}%0A`;
         message += `Price: ₹${item.price}%0A%0A`;
       });
-
-      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
       message += `💰 *Total: ₹${total}*%0A%0A`;
-
       message += `👤 Name: ${formData.name}%0A`;
       message += `📞 Phone: ${formData.phone}%0A`;
       message += `📍 Address: ${formData.address}%0A`;
-
       const url = `https://wa.me/919368340997?text=${message}`;
-
       window.open(url, "_blank");
 
+      alert("✅ Order saved in database");
       setOrderComplete(true);
       clearCart();
 
     } catch (err) {
-      console.error("Order submission failed:", err);
-      alert("Order failed. Please try again.");
+      alert("Error placing order");
     } finally {
       setLoading(false);
     }

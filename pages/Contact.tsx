@@ -1,8 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '../components/AppLayout';
 import { MapPin, Phone, Clock, Shield, ExternalLink, Mail } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 export const Contact: React.FC = () => {
+  const { user } = useAuth();
+  const [status, setStatus] = useState("Checking...");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    const check = async () => {
+      const { error } = await supabase.from("orders").select("*").limit(1);
+
+      if (error) {
+        setStatus("❌ Error");
+        setErr(error.message);
+      } else {
+        setStatus("✅ Connected");
+      }
+    };
+
+    check();
+  }, []);
+
   return (
     <AppLayout activePage="contact" pageTitle="Information">
         
@@ -175,6 +196,14 @@ export const Contact: React.FC = () => {
                             Torn
                         </a>
                     </p>
+                </div>
+
+                {/* Debug Panel */}
+                <div className="mt-8 p-3 bg-gray-50 rounded-xl border border-gray-200 text-[10px] text-left font-mono text-gray-400 opacity-60">
+                    <p className="font-bold mb-1 uppercase tracking-tighter">Debug Info</p>
+                    <p>Status: {status}</p>
+                    <p className="truncate">Error: {err || "None"}</p>
+                    <p>User: {user?.email || "Not logged in"}</p>
                 </div>
             </div>
         </div>

@@ -17,7 +17,7 @@ export interface CartItem extends Product {
 export interface Order {
   id: string;
   created_at: string;
-  total_price: number;
+  total: number;
   items: CartItem[]; // Stored as JSONB in Supabase
   status?: string;
   customer_name?: string;
@@ -27,7 +27,7 @@ export interface Order {
 
 export interface StoreUpdate {
   id: string;
-  content: string;
+  message: string;
   created_at: string;
 }
 

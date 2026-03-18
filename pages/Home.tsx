@@ -11,30 +11,15 @@ export const Home: React.FC = () => {
   const [updates, setUpdates] = useState<StoreUpdate[]>([]);
   const [loadingUpdates, setLoadingUpdates] = useState(true);
 
-  const [testResult, setTestResult] = useState("Testing...");
-
   useEffect(() => {
     fetchUpdates();
-    
-    // Supabase Connection Test
-    const test = async () => {
-      const { error } = await supabase.from("orders").select("*");
-
-      if (error) {
-        setTestResult("❌ Error: " + error.message);
-      } else {
-        setTestResult("✅ Connected");
-      }
-    };
-
-    test();
   }, []);
 
   const fetchUpdates = async () => {
     if (!supabase) {
         setUpdates([
-            { id: '1', content: 'Shop is closed today due to heavy rain.', created_at: new Date().toISOString() },
-            { id: '2', content: 'New stock of Urea Gold has arrived!', created_at: new Date(Date.now() - 86400000).toISOString() }
+            { id: '1', message: 'Shop is closed today due to heavy rain.', created_at: new Date().toISOString() },
+            { id: '2', message: 'New stock of Urea Gold has arrived!', created_at: new Date(Date.now() - 86400000).toISOString() }
         ]);
         setLoadingUpdates(false);
         return;
@@ -42,7 +27,7 @@ export const Home: React.FC = () => {
 
     try {
         const { data, error } = await supabase
-            .from('store_updates')
+            .from('updates')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(3);
@@ -58,9 +43,6 @@ export const Home: React.FC = () => {
 
   return (
     <AppLayout activePage="home">
-        <p style={{ color: "red", textAlign: "center", fontWeight: "bold", marginTop: "10px" }}>
-          {testResult}
-        </p>
         
         {/* HERO SECTION - Polished Spacing & Alignment */}
         <div className="relative mt-0 min-h-[360px] h-auto rounded-[28px] overflow-hidden shadow-2xl group animate-fade-in bg-gray-900 flex flex-col justify-center">
@@ -167,7 +149,7 @@ export const Home: React.FC = () => {
                         <div key={update.id} className="bg-white p-4 rounded-[20px] shadow-sm border border-[#E7E5E4] flex gap-4 items-start relative overflow-hidden animate-fade-in-up group hover:shadow-md transition-all" style={{ animationDelay: `${600 + (idx * 100)}ms` }}>
                             <div className="w-1 h-full absolute left-0 top-0 bg-gradient-to-b from-[#064E3B] to-emerald-500"></div>
                             <div className="flex-1 pl-1">
-                                <p className="text-[#27272a] font-bold text-sm leading-relaxed">{update.content}</p>
+                                <p className="text-[#27272a] font-bold text-sm leading-relaxed">{update.message}</p>
                                 <p className="text-[10px] text-gray-400 font-bold mt-2 flex items-center gap-1 uppercase tracking-wide">
                                     {new Date(update.created_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                                 </p>

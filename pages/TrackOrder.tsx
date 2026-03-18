@@ -103,7 +103,7 @@ export const TrackOrder: React.FC = () => {
                 <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-emerald-50/30">
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Order ID: {order.id.slice(0, 8)}</p>
-                    <p className="font-black text-xl text-[#064E3B]">₹{order.total_price}</p>
+                    <p className="font-black text-xl text-[#064E3B]">₹{order.total}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Date</p>

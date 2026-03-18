@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useNavigation } from '../context/NavigationContext';
+import { useAuth } from '../context/AuthContext';
 import { Product, Order, StoreUpdate } from '../types';
 import { 
   Plus, Trash2, Edit2, LogOut, Save, X, ArrowLeft, 
@@ -12,6 +13,7 @@ import { GoogleGenAI } from "@google/genai";
 
 export const Admin: React.FC = () => {
   const { push } = useNavigation();
+  const { signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'updates'>('products');
   
   // Data State
@@ -32,7 +34,7 @@ export const Admin: React.FC = () => {
   const [isAutofilling, setIsAutofilling] = useState(false);
   
   // Update Form
-  const [updateText, setUpdateText] = useState('');
+  const [text, setText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   const CATEGORIES = ['Seeds', 'Fertilizer', 'Pesticides', 'Tools', 'Offers'];
@@ -63,7 +65,7 @@ export const Admin: React.FC = () => {
       const [prod, ord, upd] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
-        supabase.from('store_updates').select('*').order('created_at', { ascending: false })
+        supabase.from('updates').select('*').order('created_at', { ascending: false })
       ]);
       
       setProducts(prod.data || []);
@@ -77,7 +79,7 @@ export const Admin: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
+    await signOut();
     push('/login');
   };
 
@@ -210,18 +212,31 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const saveUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supabase) return;
-    if (!updateText.trim()) return;
-    await supabase.from('store_updates').insert([{ content: updateText }]);
-    setUpdateText('');
+  const postUpdate = async () => {
+    if (!text) {
+      alert("Enter update");
+      return;
+    }
+
+    const { error } = await supabase.from("updates").insert([
+      {
+        message: text,
+      },
+    ]);
+
+    if (error) {
+      alert("❌ Update failed: " + error.message);
+      return;
+    }
+
+    alert("✅ Update posted");
+    setText("");
     fetchData();
   };
 
   const deleteUpdate = async (id: string) => {
       if (!supabase) return;
-      await supabase.from('store_updates').delete().eq('id', id);
+      await supabase.from('updates').delete().eq('id', id);
       fetchData();
   };
 
@@ -235,7 +250,7 @@ export const Admin: React.FC = () => {
   const resetForms = () => {
     setProductForm({ name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true });
     setEditingId(null);
-    setUpdateText('');
+    setText('');
   };
 
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -508,9 +523,9 @@ export const Admin: React.FC = () => {
                                          </p>
                                      </div>
                                  </div>
-                                 <div className="text-right">
-                                    <span className="block text-lg font-black text-[#064E3B]">₹{order.total_price}</span>
-                                 </div>
+                                  <div className="text-right">
+                                    <span className="block text-lg font-black text-[#064E3B]">₹{order.total}</span>
+                                  </div>
                              </div>
                              
                              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -566,13 +581,13 @@ export const Admin: React.FC = () => {
              <div className="space-y-5 animate-fade-in max-w-2xl mx-auto">
                 <div className="bg-white rounded-[24px] shadow-sm border border-[#E7E5E4] p-5">
                     <h3 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2"><Bell size={18} /> New Announcement</h3>
-                    <form onSubmit={saveUpdate} className="flex flex-col gap-3">
+                    <form onSubmit={(e) => { e.preventDefault(); postUpdate(); }} className="flex flex-col gap-3">
                         <textarea 
                             required 
                             placeholder="Type update here..." 
                             className="w-full p-4 rounded-[16px] border border-[#E7E5E4] focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0] text-sm font-medium resize-none h-28 text-gray-800 placeholder-gray-400"
-                            value={updateText} 
-                            onChange={e => setUpdateText(e.target.value)} 
+                            value={text} 
+                            onChange={e => setText(e.target.value)} 
                         />
                         <button type="submit" className="bg-[#064E3B] text-white py-3 rounded-[12px] font-bold text-sm hover:bg-[#053d2e] active:scale-95 transition-all shadow-md self-end px-8">
                             Post Update
@@ -591,7 +606,7 @@ export const Admin: React.FC = () => {
                                 <div className="h-full w-0.5 bg-gray-100 rounded-full"></div>
                             </div>
                             <div className="flex-1 pb-2">
-                                <p className="text-gray-700 font-medium text-sm leading-relaxed">{u.content}</p>
+                                <p className="text-gray-700 font-medium text-sm leading-relaxed">{u.message}</p>
                                 <p className="text-[10px] text-gray-400 font-bold mt-2 flex items-center gap-1">
                                     <Clock size={10} />
                                     {new Date(u.created_at).toLocaleString()}
