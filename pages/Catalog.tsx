@@ -100,7 +100,6 @@ export const Catalog: React.FC = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -116,6 +115,14 @@ export const Catalog: React.FC = () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredProducts = products.filter(p => {
     const pCat = p.category ? p.category.toLowerCase().trim() : '';
@@ -235,7 +242,7 @@ export const Catalog: React.FC = () => {
                             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 shadow-inner">
                                 <ShoppingBag className="text-gray-400" size={20} />
                             </div>
-                            <h3 className="text-sm font-bold text-gray-800">No items found</h3>
+                            <h3 className="text-sm font-bold text-gray-800">No products available</h3>
                             <p className="text-[11px] text-gray-500 mt-1 max-w-[200px] font-medium mx-auto">
                                 Try searching for something else or change the category filter.
                             </p>

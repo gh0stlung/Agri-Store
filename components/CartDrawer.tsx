@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 import { ShoppingBag, X, Minus, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
@@ -7,8 +8,14 @@ import { useNavigation } from '../context/NavigationContext';
 export const CartDrawer: React.FC = () => {
   const { cart, cartTotal, updateQuantity, isCartOpen, setIsCartOpen } = useCart();
   const { push } = useNavigation();
+  const { user } = useAuth();
 
   const handleCheckout = () => {
+    if (!user) {
+      setIsCartOpen(false);
+      push('/login');
+      return;
+    }
     setIsCartOpen(false);
     push('/order');
   };

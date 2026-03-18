@@ -20,7 +20,9 @@ export const Admin: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [updates, setUpdates] = useState<StoreUpdate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingUpdates, setLoadingUpdates] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
   
   // Forms & Edit State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -56,26 +58,44 @@ export const Admin: React.FC = () => {
     await fetchData();
   };
 
-  const fetchData = async () => {
-    if (!supabase) {
-        setLoading(false);
-        return;
-    }
+  const loadProducts = async () => {
     try {
-      const [prod, ord, upd] = await Promise.all([
-        supabase.from('products').select('*').order('created_at', { ascending: false }),
-        supabase.from('orders').select('*').order('created_at', { ascending: false }),
-        supabase.from('updates').select('*').order('created_at', { ascending: false })
-      ]);
-      
-      setProducts(prod.data || []);
-      setOrders(ord.data || []);
-      setUpdates(upd.data || []);
-    } catch (e) {
-      console.error("Fetch error:", e);
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error(err);
     } finally {
-      setLoading(false);
+      setLoadingProducts(false);
     }
+  };
+
+  const loadOrders = async () => {
+    try {
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const loadUpdates = async () => {
+    try {
+      const { data, error } = await supabase.from('updates').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setUpdates(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingUpdates(false);
+    }
+  };
+
+  const fetchData = async () => {
+    await Promise.all([loadProducts(), loadOrders(), loadUpdates()]);
   };
 
   const handleLogout = async () => {
@@ -255,11 +275,29 @@ export const Admin: React.FC = () => {
 
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  if (loading) return (
+  if (activeTab === 'products' && loadingProducts) return (
       <div className="flex items-center justify-center min-h-[100dvh] bg-[#FFFCF0]">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#064E3B]"></div>
-            <p className="text-[#064E3B] font-bold text-sm">Loading Dashboard...</p>
+            <p className="text-[#064E3B] font-bold text-sm">Loading Products...</p>
+          </div>
+      </div>
+  );
+  
+  if (activeTab === 'orders' && loadingOrders) return (
+      <div className="flex items-center justify-center min-h-[100dvh] bg-[#FFFCF0]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#064E3B]"></div>
+            <p className="text-[#064E3B] font-bold text-sm">Loading Orders...</p>
+          </div>
+      </div>
+  );
+  
+  if (activeTab === 'updates' && loadingUpdates) return (
+      <div className="flex items-center justify-center min-h-[100dvh] bg-[#FFFCF0]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#064E3B]"></div>
+            <p className="text-[#064E3B] font-bold text-sm">Loading Updates...</p>
           </div>
       </div>
   );
@@ -474,34 +512,38 @@ export const Admin: React.FC = () => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {filteredProducts.map((p) => (
-                        <div key={p.id} className={`bg-white rounded-[16px] p-3 shadow-sm border border-[#E7E5E4] flex gap-3 transition-all hover:border-[#064E3B]/20 ${p.is_active === false ? 'opacity-60 grayscale' : ''}`}>
-                             <div className="w-16 h-16 rounded-[10px] bg-gray-100 flex-shrink-0 overflow-hidden border border-[#E7E5E4]">
-                                <img src={p.image_url || 'https://via.placeholder.com/100'} className="w-full h-full object-cover" alt={p.name} loading="lazy" />
-                             </div>
-                             <div className="flex-1 flex flex-col justify-between py-0.5">
-                                <div>
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="font-bold text-[var(--text-primary)] text-sm line-clamp-1 leading-snug">{p.name}</h4>
-                                        {p.is_active === false && <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[9px] font-bold rounded border border-red-100">Hidden</span>}
-                                    </div>
-                                    <span className="text-[10px] font-bold text-[#78350F] bg-[#FFFCF0] px-2 py-0.5 rounded-md mt-1 inline-block border border-[#E7E5E4]">{p.category}</span>
-                                </div>
-                                <div className="flex justify-between items-end">
+                {filteredProducts.length === 0 ? (
+                    <div className="p-10 text-center text-gray-400 bg-white rounded-2xl border border-dashed border-[#E7E5E4]">No products found.</div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {filteredProducts.map((p) => (
+                            <div key={p.id} className={`bg-white rounded-[16px] p-3 shadow-sm border border-[#E7E5E4] flex gap-3 transition-all hover:border-[#064E3B]/20 ${p.is_active === false ? 'opacity-60 grayscale' : ''}`}>
+                                 <div className="w-16 h-16 rounded-[10px] bg-gray-100 flex-shrink-0 overflow-hidden border border-[#E7E5E4]">
+                                    <img src={p.image_url || 'https://via.placeholder.com/100'} className="w-full h-full object-cover" alt={p.name} loading="lazy" />
+                                 </div>
+                                 <div className="flex-1 flex flex-col justify-between py-0.5">
                                     <div>
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Stock: {p.stock} {p.unit}</span>
-                                        <div className="font-black text-[#064E3B] text-sm">₹{p.price}</div>
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="font-bold text-[var(--text-primary)] text-sm line-clamp-1 leading-snug">{p.name}</h4>
+                                            {p.is_active === false && <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[9px] font-bold rounded border border-red-100">Hidden</span>}
+                                        </div>
+                                        <span className="text-[10px] font-bold text-[#78350F] bg-[#FFFCF0] px-2 py-0.5 rounded-md mt-1 inline-block border border-[#E7E5E4]">{p.category}</span>
                                     </div>
-                                    <div className="flex gap-1.5">
-                                        <button onClick={() => { setEditingId(p.id); setProductForm(p); setIsFormOpen(true); }} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-100 active:scale-95 transition-transform"><Edit2 size={14}/></button>
-                                        <button onClick={() => deleteProduct(p.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 border border-red-100 active:scale-95 transition-transform"><Trash2 size={14}/></button>
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Stock: {p.stock} {p.unit}</span>
+                                            <div className="font-black text-[#064E3B] text-sm">₹{p.price}</div>
+                                        </div>
+                                        <div className="flex gap-1.5">
+                                            <button onClick={() => { setEditingId(p.id); setProductForm(p); setIsFormOpen(true); }} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-100 active:scale-95 transition-transform"><Edit2 size={14}/></button>
+                                            <button onClick={() => deleteProduct(p.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 border border-red-100 active:scale-95 transition-transform"><Trash2 size={14}/></button>
+                                        </div>
                                     </div>
-                                </div>
-                             </div>
-                        </div>
-                    ))}
-                </div>
+                                 </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         )}
 
@@ -597,26 +639,30 @@ export const Admin: React.FC = () => {
 
                 <div className="space-y-3">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-2">Recent Posts</h3>
-                    {updates.map((u) => (
-                        <div key={u.id} className="bg-white p-4 rounded-[20px] border border-[#E7E5E4] flex gap-4 items-start shadow-sm relative group hover:bg-[#FFFCF0] transition-colors">
-                            <div className="flex flex-col items-center gap-1 min-w-[50px]">
-                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
-                                    <Bell size={18} />
+                    {updates.length === 0 ? (
+                        <div className="p-10 text-center text-gray-400 bg-white rounded-2xl border border-dashed border-[#E7E5E4]">No updates posted yet.</div>
+                    ) : (
+                        updates.map((u) => (
+                            <div key={u.id} className="bg-white p-4 rounded-[20px] border border-[#E7E5E4] flex gap-4 items-start shadow-sm relative group hover:bg-[#FFFCF0] transition-colors">
+                                <div className="flex flex-col items-center gap-1 min-w-[50px]">
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                                        <Bell size={18} />
+                                    </div>
+                                    <div className="h-full w-0.5 bg-gray-100 rounded-full"></div>
                                 </div>
-                                <div className="h-full w-0.5 bg-gray-100 rounded-full"></div>
+                                <div className="flex-1 pb-2">
+                                    <p className="text-gray-700 font-medium text-sm leading-relaxed">{u.message}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold mt-2 flex items-center gap-1">
+                                        <Clock size={10} />
+                                        {new Date(u.created_at).toLocaleString()}
+                                    </p>
+                                </div>
+                                <button onClick={() => deleteUpdate(u.id)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                    <Trash2 size={16}/>
+                                </button>
                             </div>
-                            <div className="flex-1 pb-2">
-                                <p className="text-gray-700 font-medium text-sm leading-relaxed">{u.message}</p>
-                                <p className="text-[10px] text-gray-400 font-bold mt-2 flex items-center gap-1">
-                                    <Clock size={10} />
-                                    {new Date(u.created_at).toLocaleString()}
-                                </p>
-                            </div>
-                            <button onClick={() => deleteUpdate(u.id)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                                <Trash2 size={16}/>
-                            </button>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
         )}

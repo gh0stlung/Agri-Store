@@ -1,12 +1,15 @@
 import React from 'react';
 import { Link } from './Link';
-import { Home, ShoppingBag, MapPin } from 'lucide-react';
+import { Home, ShoppingBag, MapPin, ShoppingCart } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 interface BottomNavProps {
   activePage: string;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activePage }) => {
+  const { cart } = useCart();
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center pb-6 px-4">
         {/* Floating Island Container - Black Glass Effect */}
@@ -40,6 +43,27 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activePage }) => {
                 />
                 <span className={`text-[9px] font-bold mt-0.5 tracking-wide transition-all relative z-10 ${activePage === 'catalog' ? 'opacity-100 translate-y-0 text-white' : 'opacity-0 translate-y-1 h-0 text-gray-500'}`}>
                     Shop
+                </span>
+            </Link>
+
+            <Link href="/cart" className={`relative flex-1 flex flex-col items-center justify-center h-14 rounded-full transition-all duration-300 group ${activePage === 'cart' ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
+                {activePage === 'cart' && (
+                    <div className="absolute inset-0 bg-white/15 rounded-full animate-fade-in"></div>
+                )}
+                <div className="relative">
+                    <ShoppingCart 
+                        size={22} 
+                        strokeWidth={activePage === 'cart' ? 2.5 : 2}
+                        className={`transition-transform duration-300 relative z-10 ${activePage === 'cart' ? 'scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'group-hover:scale-110'}`} 
+                    />
+                    {cart.length > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full z-20">
+                            {cart.length}
+                        </span>
+                    )}
+                </div>
+                <span className={`text-[9px] font-bold mt-0.5 tracking-wide transition-all relative z-10 ${activePage === 'cart' ? 'opacity-100 translate-y-0 text-white' : 'opacity-0 translate-y-1 h-0 text-gray-500'}`}>
+                    Cart 🛒
                 </span>
             </Link>
             

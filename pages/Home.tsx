@@ -12,10 +12,17 @@ export const Home: React.FC = () => {
   const [loadingUpdates, setLoadingUpdates] = useState(true);
 
   useEffect(() => {
-    fetchUpdates();
+    loadUpdates();
+    
+    const timer = setTimeout(() => {
+      setLoadingUpdates(false);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
-  const fetchUpdates = async () => {
+  const loadUpdates = async () => {
+    console.log("Fetching updates...");
     if (!supabase) {
         setUpdates([
             { id: '1', message: 'Shop is closed today due to heavy rain.', created_at: new Date().toISOString() },
@@ -40,6 +47,7 @@ export const Home: React.FC = () => {
         setLoadingUpdates(false);
     }
   };
+
 
   return (
     <AppLayout activePage="home">
@@ -126,6 +134,7 @@ export const Home: React.FC = () => {
                 </div>
              </div>
         </div>
+        
 
         {/* UPDATES SECTION */}
         <div className="mt-7 mb-6 animate-fade-in-up" style={{animationDelay: '500ms'}}>

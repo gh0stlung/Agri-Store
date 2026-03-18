@@ -7,8 +7,11 @@ export const Contact: React.FC = () => {
   const [status, setStatus] = useState("Checking...");
   const [errorMsg, setErrorMsg] = useState("");
   const [userInfo, setUserInfo] = useState("");
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
+    if (checked) return;
+
     const check = async () => {
       try {
         const { data: userData } = await supabase.auth.getUser();
@@ -20,23 +23,26 @@ export const Contact: React.FC = () => {
           setUserInfo("Not logged in");
         }
 
-        const { error } = await supabase.from("orders").select("id").limit(1);
+        const { data: _products, error: productsError } = await supabase.from('products').select('*');
+        const { data: _updates, error: updatesError } = await supabase.from('updates').select('*');
 
-        if (error) {
-          setStatus("❌ DB Error");
-          setErrorMsg(error.message);
+        if (productsError || updatesError) {
+          setStatus("error");
+          setErrorMsg((productsError?.message || "") + (updatesError?.message || ""));
         } else {
-          setStatus("✅ Connected");
+          setStatus("connected");
         }
 
       } catch (err: any) {
         setStatus("❌ System Error");
         setErrorMsg(err.message);
+      } finally {
+        setChecked(true);
       }
     };
 
     check();
-  }, []);
+  }, [checked]);
 
   return (
     <AppLayout activePage="contact" pageTitle="Information">
@@ -47,7 +53,7 @@ export const Contact: React.FC = () => {
             <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-orange-100/30 rounded-full blur-2xl translate-y-1/3 -translate-x-1/3"></div>
         </div>
 
-        <div className="relative z-10 space-y-6">
+        <div className="relative z-10 space-y-6 pb-[120px]">
             
             {/* Hero Card with Background Image */}
             <div className="rounded-[32px] p-8 text-center text-white shadow-xl relative overflow-hidden animate-fade-in-up">
@@ -191,8 +197,8 @@ export const Contact: React.FC = () => {
                 </div>
             </div>
 
-            {/* Footer Credits - Extra Bottom Padding for WhatsApp Button */}
-            <div className="text-center pt-10 pb-24">
+            {/* Footer Credits */}
+            <div className="text-center pt-10">
                 <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4 opacity-50"></div>
                 <p className="text-[10px] font-bold text-[#78350F] tracking-wider opacity-50">
                     EST. 2005 • GANJDUNDWARA<br/>
@@ -213,10 +219,10 @@ export const Contact: React.FC = () => {
                 </div>
 
                 {/* Developer Status Panel */}
-                <div className="fixed bottom-4 left-4 z-50 p-4 bg-black border border-emerald-500/30 rounded-lg shadow-2xl font-mono text-[10px] text-emerald-400 max-w-[250px] overflow-hidden">
-                    <p className="font-bold text-yellow-400 mb-1 uppercase tracking-tighter">Developer Panel</p>
-                    <p className="break-words">Status: <span className={status.includes("✅") ? "text-green-400" : "text-red-400"}>{status}</span></p>
-                    <p className="break-words">User: <span className="text-emerald-300">{userInfo}</span></p>
+                <div className="w-[90%] mx-auto p-[10px] bg-black text-white rounded-[10px] font-mono text-[14px] mt-6">
+                    <p className="font-bold text-yellow-400 mb-2 uppercase">Developer Panel</p>
+                    <p className="break-words">Status: {status === "connected" ? "✅ Connected" : "❌ Error"}</p>
+                    <p className="break-words">User: {userInfo}</p>
                     {errorMsg && <p className="break-words text-red-400">Error: {errorMsg}</p>}
                 </div>
 
@@ -224,7 +230,7 @@ export const Contact: React.FC = () => {
         </div>
 
         {/* WhatsApp Floating Button */}
-        <div className="fixed bottom-28 right-6 z-40 animate-slide-up" style={{animationDelay: '500ms'}}>
+        <div className="fixed bottom-32 right-6 z-40 animate-slide-up" style={{animationDelay: '500ms'}}>
             <a 
                 href="https://wa.me/919368340997" 
                 target="_blank" 
