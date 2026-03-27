@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { CartContextType, CartItem, Product } from '../types';
+import { useToast } from './ToastContext';
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -10,6 +11,7 @@ export const useCart = () => {
 };
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { showToast } = useToast();
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('cart');
@@ -19,8 +21,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
   });
-  
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -34,13 +34,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
+        showToast(`Added another ${product.name} to cart`);
         return prev.map(item => 
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
+      showToast(`${product.name} added to cart`);
       return [...prev, { ...product, quantity: 1 }];
     });
-    setIsCartOpen(true);
   };
 
   const removeFromCart = (productId: string) => {
@@ -70,9 +71,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateQuantity, 
       clearCart, 
       cartTotal, 
-      cartCount,
-      isCartOpen,
-      setIsCartOpen
+      cartCount
     }}>
       {children}
     </CartContext.Provider>

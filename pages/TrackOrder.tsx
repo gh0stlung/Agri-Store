@@ -52,20 +52,20 @@ export const TrackOrder: React.FC = () => {
     <AppLayout activePage="home" pageTitle="Track Order">
       <div className="mt-4 px-4 pb-20">
         {/* Search Section */}
-        <div className="bg-white rounded-[28px] shadow-sm border border-[#E7E5E4] p-6 mb-6">
+        <div className="bg-[var(--card-bg)] rounded-[28px] shadow-[var(--shadow-soft)] border border-[var(--border-color)] p-6 mb-6">
           <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 font-serif">Track Your Order</h2>
           <form onSubmit={handleTrack} className="relative">
             <input 
               type="text" 
               placeholder="Enter Order ID or Mobile" 
-              className="w-full pl-4 pr-12 py-4 rounded-[16px] border border-[#E7E5E4] bg-[#FFFCF0] focus:ring-2 focus:ring-[#064E3B] outline-none font-bold text-lg tracking-wide"
+              className="w-full pl-4 pr-12 py-4 rounded-[16px] border border-[var(--border-color)] bg-[var(--input-bg)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none font-bold text-lg tracking-wide text-[var(--text-body)]"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
             <button 
               type="submit"
               disabled={loading}
-              className="absolute right-2 top-2 bottom-2 bg-[#064E3B] text-white rounded-[12px] w-12 flex items-center justify-center hover:bg-[#065E4B] transition-colors shadow-md active:scale-95"
+              className="absolute right-2 top-2 bottom-2 bg-[var(--primary-btn)] text-white rounded-[12px] w-12 flex items-center justify-center hover:opacity-90 transition-colors shadow-md active:scale-95"
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
             </button>
@@ -78,17 +78,17 @@ export const TrackOrder: React.FC = () => {
         {/* Results Section */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="animate-spin text-[#064E3B] mb-4" size={32} />
+            <Loader2 className="animate-spin text-[var(--text-primary)] mb-4" size={32} />
             <p className="text-sm font-bold text-gray-500">Searching for your order...</p>
           </div>
         )}
 
         {searched && !loading && orders.length === 0 && (
-          <div className="bg-white rounded-[24px] border border-dashed border-gray-200 p-12 text-center animate-fade-in">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Package size={32} className="text-gray-300" />
+          <div className="bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)] p-12 text-center animate-fade-in">
+            <div className="w-16 h-16 bg-[var(--input-bg)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package size={32} className="text-gray-400" />
             </div>
-            <h3 className="text-base font-bold text-gray-800">No order found</h3>
+            <h3 className="text-base font-bold text-[var(--text-primary)]">No order found</h3>
             <p className="text-xs text-gray-500 mt-1">Please check the details and try again.</p>
           </div>
         )}
@@ -98,26 +98,26 @@ export const TrackOrder: React.FC = () => {
             const currentIdx = getStatusIndex(order.status);
             
             return (
-              <div key={order.id} className="bg-white rounded-[24px] shadow-md border border-[#E7E5E4] overflow-hidden animate-fade-in">
+              <div key={order.id} className="bg-[var(--card-bg)] rounded-[24px] shadow-[var(--shadow-premium)] border border-[var(--border-color)] overflow-hidden animate-fade-in">
                 {/* Order Header */}
-                <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-emerald-50/30">
+                <div className="p-5 border-b border-[var(--border-color)] flex justify-between items-start bg-emerald-500/5">
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Order ID: {order.id.slice(0, 8)}</p>
-                    <p className="font-black text-xl text-[#064E3B]">₹{order.total}</p>
+                    <p className="font-black text-xl text-[var(--text-primary)]">₹{order.total}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Date</p>
-                    <p className="text-xs font-bold text-gray-700">{new Date(order.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs font-bold text-[var(--text-body)] opacity-80">{new Date(order.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
 
                 {/* Status Steps */}
-                <div className="p-6 bg-white">
+                <div className="p-6 bg-[var(--card-bg)]">
                   <div className="flex justify-between items-center relative mb-8">
                     {/* Progress Line */}
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-100 z-0"></div>
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-[var(--input-bg)] z-0"></div>
                     <div 
-                      className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-[#064E3B] transition-all duration-1000 z-0"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-emerald-500 transition-all duration-1000 z-0"
                       style={{ width: `${(currentIdx / (statusSteps.length - 1)) * 100}%` }}
                     ></div>
 
@@ -128,10 +128,10 @@ export const TrackOrder: React.FC = () => {
                       return (
                         <div key={step} className="relative z-10 flex flex-col items-center">
                           <div className={`w-4 h-4 rounded-full border-2 transition-all duration-500 ${
-                            isActive ? 'bg-[#064E3B] border-[#064E3B]' : 'bg-white border-gray-200'
-                          } ${isCurrent ? 'ring-4 ring-emerald-100 scale-125' : ''}`}></div>
+                            isActive ? 'bg-emerald-500 border-emerald-500' : 'bg-[var(--card-bg)] border-[var(--border-color)]'
+                          } ${isCurrent ? 'ring-4 ring-emerald-500/20 scale-125' : ''}`}></div>
                           <span className={`absolute top-6 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap ${
-                            isActive ? 'text-[#064E3B]' : 'text-gray-300'
+                            isActive ? 'text-emerald-500' : 'text-gray-400'
                           }`}>
                             {step}
                           </span>
@@ -141,15 +141,15 @@ export const TrackOrder: React.FC = () => {
                   </div>
 
                   {/* Current Status Message */}
-                  <div className="mt-10 bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
-                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm text-[#064E3B]">
+                  <div className="mt-10 bg-emerald-500/10 rounded-xl p-4 flex items-center gap-3 border border-emerald-500/20">
+                    <div className="w-8 h-8 bg-[var(--card-bg)] rounded-full flex items-center justify-center shadow-sm text-emerald-500 border border-[var(--border-color)]">
                       {currentIdx === 3 ? <CheckCircle size={16} /> : <Clock size={16} className="animate-pulse" />}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
+                      <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
                         Current Status: {order.status || 'Pending'}
                       </p>
-                      <p className="text-[10px] text-emerald-700 font-medium">
+                      <p className="text-[10px] text-[var(--text-body)] opacity-70 font-medium">
                         {currentIdx === 0 && "We have received your order."}
                         {currentIdx === 1 && "Your order has been confirmed."}
                         {currentIdx === 2 && "Your order is on the way."}
@@ -160,16 +160,16 @@ export const TrackOrder: React.FC = () => {
                 </div>
 
                 {/* Product List */}
-                <div className="p-5 bg-gray-50/50 border-t border-gray-100">
+                <div className="p-5 bg-[var(--input-bg)] border-t border-[var(--border-color)]">
                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Items Ordered</h4>
                   <div className="space-y-2">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 bg-white border border-gray-200 rounded flex items-center justify-center font-bold text-[#064E3B] text-[10px]">{item.quantity}</span>
-                          <span className="font-bold text-gray-700">{item.name}</span>
+                          <span className="w-5 h-5 bg-[var(--card-bg)] border border-[var(--border-color)] rounded flex items-center justify-center font-bold text-[var(--text-primary)] text-[10px]">{item.quantity}</span>
+                          <span className="font-bold text-[var(--text-body)] opacity-80">{item.name}</span>
                         </div>
-                        <span className="font-black text-gray-900">₹{item.price * item.quantity}</span>
+                        <span className="font-black text-[var(--text-primary)]">₹{item.price * item.quantity}</span>
                       </div>
                     ))}
                   </div>
@@ -181,9 +181,9 @@ export const TrackOrder: React.FC = () => {
 
         {/* Support Footer */}
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#E7E5E4] rounded-full shadow-sm">
-            <AlertCircle size={14} className="text-emerald-600" />
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Need help? Call 9368340997</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-full shadow-sm">
+            <AlertCircle size={14} className="text-emerald-500" />
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Need help? Call 9368340997</span>
           </div>
         </div>
       </div>

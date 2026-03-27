@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from './Link';
-import { Home, ShoppingBag, MapPin, ShoppingCart } from 'lucide-react';
+import { Home, ShoppingBag, MapPin, ShoppingCart, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { motion } from 'motion/react';
 
 interface BottomNavProps {
   activePage: string;
@@ -10,77 +11,52 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ activePage }) => {
   const { cart } = useCart();
 
+  const navItems = [
+    { id: 'home', label: 'Home', icon: Home, href: '/' },
+    { id: 'catalog', label: 'Shop', icon: ShoppingBag, href: '/catalog' },
+    { id: 'cart', label: 'Cart', icon: ShoppingCart, href: '/cart', badge: cart.length },
+    { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
+    { id: 'contact', label: 'Visit', icon: MapPin, href: '/contact' },
+  ];
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center pb-6 px-4">
-        {/* Floating Island Container - Black Glass Effect */}
-        <div className="pointer-events-auto w-full max-w-[340px] bg-black/85 backdrop-blur-xl rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.45)] border border-white/10 p-1.5 flex justify-between items-center relative overflow-hidden ring-1 ring-white/10">
-            
-            {/* Gloss Effect */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-50 h-[65px] bg-[var(--card-bg)]/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 flex items-center justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] transition-colors duration-200">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = activePage === item.id;
 
-            <Link href="/" className={`relative flex-1 flex flex-col items-center justify-center h-14 rounded-full transition-all duration-300 group ${activePage === 'home' ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
-                {activePage === 'home' && (
-                    <div className="absolute inset-0 bg-white/15 rounded-full animate-fade-in"></div>
-                )}
-                <Home 
-                    size={22} 
-                    strokeWidth={activePage === 'home' ? 2.5 : 2}
-                    className={`transition-transform duration-300 relative z-10 ${activePage === 'home' ? 'scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'group-hover:scale-110'}`} 
+        return (
+          <Link 
+            key={item.id} 
+            href={item.href} 
+            className={`relative flex-1 flex flex-col items-center justify-center h-full transition-all duration-300 group ${isActive ? 'text-[var(--text-primary)]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+          >
+            <div className="relative">
+              <Icon 
+                size={22} 
+                strokeWidth={isActive ? 2.5 : 2}
+                className={`transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} 
+              />
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-[var(--card-bg)] shadow-sm">
+                  {item.badge}
+                </span>
+              )}
+              {isActive && (
+                <motion.div 
+                  layoutId="nav-active"
+                  className="absolute -inset-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl -z-10"
+                  initial={false}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
-                <span className={`text-[9px] font-bold mt-0.5 tracking-wide transition-all relative z-10 ${activePage === 'home' ? 'opacity-100 translate-y-0 text-white' : 'opacity-0 translate-y-1 h-0 text-gray-500'}`}>
-                    Home
-                </span>
-            </Link>
-            
-            <Link href="/catalog" className={`relative flex-1 flex flex-col items-center justify-center h-14 rounded-full transition-all duration-300 group ${activePage === 'catalog' ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
-                {activePage === 'catalog' && (
-                    <div className="absolute inset-0 bg-white/15 rounded-full animate-fade-in"></div>
-                )}
-                <ShoppingBag 
-                    size={22} 
-                    strokeWidth={activePage === 'catalog' ? 2.5 : 2}
-                    className={`transition-transform duration-300 relative z-10 ${activePage === 'catalog' ? 'scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'group-hover:scale-110'}`} 
-                />
-                <span className={`text-[9px] font-bold mt-0.5 tracking-wide transition-all relative z-10 ${activePage === 'catalog' ? 'opacity-100 translate-y-0 text-white' : 'opacity-0 translate-y-1 h-0 text-gray-500'}`}>
-                    Shop
-                </span>
-            </Link>
-
-            <Link href="/cart" className={`relative flex-1 flex flex-col items-center justify-center h-14 rounded-full transition-all duration-300 group ${activePage === 'cart' ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
-                {activePage === 'cart' && (
-                    <div className="absolute inset-0 bg-white/15 rounded-full animate-fade-in"></div>
-                )}
-                <div className="relative">
-                    <ShoppingCart 
-                        size={22} 
-                        strokeWidth={activePage === 'cart' ? 2.5 : 2}
-                        className={`transition-transform duration-300 relative z-10 ${activePage === 'cart' ? 'scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'group-hover:scale-110'}`} 
-                    />
-                    {cart.length > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full z-20">
-                            {cart.length}
-                        </span>
-                    )}
-                </div>
-                <span className={`text-[9px] font-bold mt-0.5 tracking-wide transition-all relative z-10 ${activePage === 'cart' ? 'opacity-100 translate-y-0 text-white' : 'opacity-0 translate-y-1 h-0 text-gray-500'}`}>
-                    Cart 🛒
-                </span>
-            </Link>
-            
-            <Link href="/contact" className={`relative flex-1 flex flex-col items-center justify-center h-14 rounded-full transition-all duration-300 group ${activePage === 'contact' ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
-                {activePage === 'contact' && (
-                    <div className="absolute inset-0 bg-white/15 rounded-full animate-fade-in"></div>
-                )}
-                <MapPin 
-                    size={22} 
-                    strokeWidth={activePage === 'contact' ? 2.5 : 2}
-                    className={`transition-transform duration-300 relative z-10 ${activePage === 'contact' ? 'scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]' : 'group-hover:scale-110'}`} 
-                />
-                <span className={`text-[9px] font-bold mt-0.5 tracking-wide transition-all relative z-10 ${activePage === 'contact' ? 'opacity-100 translate-y-0 text-white' : 'opacity-0 translate-y-1 h-0 text-gray-500'}`}>
-                    Visit
-                </span>
-            </Link>
-        </div>
+              )}
+            </div>
+            <span className={`text-[10px] font-bold mt-1 transition-all ${isActive ? 'opacity-100 scale-105' : 'opacity-70 group-hover:opacity-100'}`}>
+              {item.label}
+            </span>
+          </Link>
+        );
+      })}
     </nav>
   );
 };

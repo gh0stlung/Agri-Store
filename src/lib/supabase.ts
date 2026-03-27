@@ -1,6 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
-export const supabase = createClient(
-  "https://obspafaiznaqsgaxuhcf.supabase.co",
-  "sb_publishable_x6PguQgSSoWqmOo96dJi7Q_ajwPsIRE"
-);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+if (supabase) {
+  console.log("Supabase connected");
+} else {
+  console.warn("Supabase credentials missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+}

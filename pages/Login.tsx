@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useNavigation } from '../context/NavigationContext';
 import { Lock, ArrowLeft, Loader2, Mail, ShieldCheck } from 'lucide-react';
 import { Link } from '../components/Link';
 
@@ -10,53 +9,84 @@ export const Login: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { replace } = useNavigation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+    if (isLogin) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password: password.trim(),
         });
-        if (error) throw error;
-        alert("Logged in successfully");
-        replace('/');
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        alert("Signed up successfully. Please check your email for confirmation.");
-        replace('/');
+
+        if (error) {
+          alert(error.message);
+          setLoading(false);
+          return;
+        }
+
+        if (data?.user) {
+          setLoading(false);
+          if (email.trim().toLowerCase() === "admin69@gmail.com") {
+            window.location.href = "/#/admin";
+          } else {
+            window.location.href = "/";
+          }
+        }
+
+      } catch (err) {
+        console.error("LOGIN ERROR:", err);
+        alert("Login failed");
+        setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
-    } finally {
-      setLoading(false);
+    } else {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: password.trim(),
+        });
+
+        if (error) {
+          alert(error.message);
+          setLoading(false);
+          return;
+        }
+
+        if (data?.user) {
+          alert("Signed up successfully. Please check your email for confirmation.");
+          setLoading(false);
+          if (email.trim().toLowerCase() === "admin69@gmail.com") {
+            window.location.href = "/#/admin";
+          } else {
+            window.location.href = "/";
+          }
+        }
+      } catch (err) {
+        console.error("SIGNUP ERROR:", err);
+        alert("Signup failed");
+        setLoading(false);
+      }
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#00241B]">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0b1120]">
       
       {/* Professional Agriculture Background */}
       <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1599583733055-6b2f7f185e3c?auto=format&fit=crop&w=1920&q=80" 
             alt="Agriculture Background" 
-            className="w-full h-full object-cover opacity-60"
+            className="w-full h-full object-cover opacity-40"
             onError={(e) => {
               e.currentTarget.src = 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1920&q=80';
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#001E15] via-[#064E3B]/90 to-[#001E15]/80 mix-blend-multiply"></div>
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0b1120] via-[#1e293b]/90 to-[#0b1120]/80 mix-blend-multiply"></div>
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
       </div>
 
       <div className="relative z-20 w-full max-w-[320px] flex flex-col">
@@ -75,7 +105,7 @@ export const Login: React.FC = () => {
             <p className="text-emerald-100/50 text-xs font-medium mt-1 tracking-widest uppercase">{isLogin ? 'Access Your Account' : 'Join Us'}</p>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-xl rounded-[28px] shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-6 border border-white/10 relative overflow-hidden">
+          <div className="bg-white/5 backdrop-blur-xl rounded-[28px] shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-6 border border-white/10 relative overflow-hidden">
              
              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"></div>
              
@@ -98,7 +128,7 @@ export const Login: React.FC = () => {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3.5 bg-black/20 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md"
+                            className="w-full pl-10 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md"
                             placeholder="email@example.com"
                         />
                     </div>
@@ -115,7 +145,7 @@ export const Login: React.FC = () => {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3.5 bg-black/20 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md"
+                            className="w-full pl-10 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md"
                             placeholder="••••••••"
                         />
                     </div>

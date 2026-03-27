@@ -15,29 +15,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Check active sessions and sets the user
     const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      
-      if (user) {
-        await supabase.from("profiles").upsert({
-          id: user.id
-        });
+      try {
+        const { data, error } = await supabase!.auth.getUser();
+        console.log("Initial auth check:", data, error);
+        setUser(data.user);
+      } catch (err) {
+        console.error("Auth check error:", err);
+      } finally {
+        setLoading(false);
       }
-      setUser(user);
-      setLoading(false);
     };
 
     getUser();
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        await supabase.from("profiles").upsert({
-          id: session.user.id
-        });
-      }
+      console.log("Auth state change:", event, session?.user?.email);
       setUser(session?.user ?? null);
       setLoading(false);
     });
@@ -46,7 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   };
 
   return (

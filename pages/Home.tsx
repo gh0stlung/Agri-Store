@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '../components/Link';
 import { useNavigation } from '../context/NavigationContext';
-import { ArrowRight, Bell, Megaphone, ChevronRight, Package, Clock } from 'lucide-react';
+import { ArrowRight, Bell, Megaphone, ChevronRight, ShoppingBag, ClipboardList } from 'lucide-react';
 import { AppLayout } from '../components/AppLayout';
 import { supabase } from '@/lib/supabase';
 import { StoreUpdate } from '../types';
@@ -22,7 +22,6 @@ export const Home: React.FC = () => {
   }, []);
 
   const loadUpdates = async () => {
-    console.log("Fetching updates...");
     if (!supabase) {
         setUpdates([
             { id: '1', message: 'Shop is closed today due to heavy rain.', created_at: new Date().toISOString() },
@@ -96,17 +95,17 @@ export const Home: React.FC = () => {
         
         {/* QUICK ACTIONS - Consistent Spacing */}
         <div className="grid grid-cols-2 gap-3 mt-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-            <Link href="/track" className="bg-white p-5 rounded-[20px] shadow-sm border border-[#E7E5E4] flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-all active:scale-95">
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-[14px] flex items-center justify-center shadow-inner">
-                    <Package size={24} />
+            <Link href="/catalog" className="bg-[var(--card-bg)] p-5 rounded-[20px] shadow-sm border border-[var(--border-color)] flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-all active:scale-95">
+                <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 rounded-[14px] flex items-center justify-center shadow-inner">
+                    <ShoppingBag size={24} />
                 </div>
-                <span className="font-bold text-gray-800 text-sm">Track Order</span>
+                <span className="font-bold text-[var(--text-body)] text-sm">Browse Products</span>
             </Link>
-            <Link href="/contact" className="bg-white p-5 rounded-[20px] shadow-sm border border-[#E7E5E4] flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-all active:scale-95">
-                <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-[14px] flex items-center justify-center shadow-inner">
-                    <Clock size={24} />
+            <Link href="/my-orders" className="bg-[var(--card-bg)] p-5 rounded-[20px] shadow-sm border border-[var(--border-color)] flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-all active:scale-95">
+                <div className="w-12 h-12 bg-blue-500/10 text-blue-600 rounded-[14px] flex items-center justify-center shadow-inner">
+                    <ClipboardList size={24} />
                 </div>
-                <span className="font-bold text-gray-800 text-sm">Timings</span>
+                <span className="font-bold text-[var(--text-body)] text-sm">My Orders</span>
             </Link>
         </div>
 
@@ -139,26 +138,26 @@ export const Home: React.FC = () => {
         {/* UPDATES SECTION */}
         <div className="mt-7 mb-6 animate-fade-in-up" style={{animationDelay: '500ms'}}>
             <div className="flex items-center gap-2 mb-3 px-1">
-                <Bell size={18} className="text-emerald-700 fill-emerald-100" />
-                <h3 className="text-lg font-black text-[#064E3B] font-serif">Store Updates</h3>
+                <Bell size={18} className="text-[var(--text-primary)] fill-emerald-500/20" />
+                <h3 className="text-lg font-black text-[var(--text-primary)] font-serif">Store Updates</h3>
             </div>
             
             <div className="space-y-3">
                 {loadingUpdates ? (
                     <div className="flex flex-col items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#064E3B] mb-3"></div>
-                        <p className="text-[#064E3B] font-bold text-xs">Loading Updates...</p>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-primary)] mb-3"></div>
+                        <p className="text-[var(--text-primary)] font-bold text-xs">Loading Updates...</p>
                     </div>
                 ) : updates.length === 0 ? (
-                    <div className="bg-white p-8 rounded-[20px] border border-dashed border-[#E7E5E4] text-center text-gray-400 font-medium text-xs">
+                    <div className="bg-[var(--card-bg)] p-8 rounded-[20px] border border-dashed border-[var(--border-color)] text-center text-gray-400 font-medium text-xs">
                         No recent updates.
                     </div>
                 ) : (
                     updates.map((update, idx) => (
-                        <div key={update.id} className="bg-white p-4 rounded-[20px] shadow-sm border border-[#E7E5E4] flex gap-4 items-start relative overflow-hidden animate-fade-in-up group hover:shadow-md transition-all" style={{ animationDelay: `${600 + (idx * 100)}ms` }}>
-                            <div className="w-1 h-full absolute left-0 top-0 bg-gradient-to-b from-[#064E3B] to-emerald-500"></div>
+                        <div key={update.id} className="bg-[var(--card-bg)] p-4 rounded-[20px] shadow-sm border border-[var(--border-color)] flex gap-4 items-start relative overflow-hidden animate-fade-in-up group hover:shadow-md transition-all" style={{ animationDelay: `${600 + (idx * 100)}ms` }}>
+                            <div className="w-1 h-full absolute left-0 top-0 bg-gradient-to-b from-[var(--text-primary)] to-emerald-500"></div>
                             <div className="flex-1 pl-1">
-                                <p className="text-[#27272a] font-bold text-sm leading-relaxed">{update.message}</p>
+                                <p className="text-[var(--text-body)] font-bold text-sm leading-relaxed">{update.message}</p>
                                 <p className="text-[10px] text-gray-400 font-bold mt-2 flex items-center gap-1 uppercase tracking-wide">
                                     {new Date(update.created_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                                 </p>

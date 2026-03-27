@@ -1,56 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { AppLayout } from '../components/AppLayout';
 import { MapPin, Phone, Clock, Shield, ExternalLink, Mail } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
 export const Contact: React.FC = () => {
-  const [status, setStatus] = useState("Checking...");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [userInfo, setUserInfo] = useState("");
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    if (checked) return;
-
-    const check = async () => {
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData.user;
-
-        if (user) {
-          setUserInfo(user.email || "Logged in");
-        } else {
-          setUserInfo("Not logged in");
-        }
-
-        const { data: _products, error: productsError } = await supabase.from('products').select('*');
-        const { data: _updates, error: updatesError } = await supabase.from('updates').select('*');
-
-        if (productsError || updatesError) {
-          setStatus("error");
-          setErrorMsg((productsError?.message || "") + (updatesError?.message || ""));
-        } else {
-          setStatus("connected");
-        }
-
-      } catch (err: any) {
-        setStatus("❌ System Error");
-        setErrorMsg(err.message);
-      } finally {
-        setChecked(true);
-      }
-    };
-
-    check();
-  }, [checked]);
-
   return (
     <AppLayout activePage="contact" pageTitle="Information">
         
         {/* Background Atmosphere */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-orange-100/30 rounded-full blur-2xl translate-y-1/3 -translate-x-1/3"></div>
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-orange-500/10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/3"></div>
         </div>
 
         <div className="relative z-10 space-y-6 pb-[120px]">
@@ -82,17 +41,17 @@ export const Contact: React.FC = () => {
             </div>
 
             {/* Contact Details Card */}
-            <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-white animate-fade-in-up" style={{animationDelay: '100ms'}}>
+            <div className="bg-[var(--card-bg)] backdrop-blur-xl rounded-[28px] p-6 shadow-[var(--shadow-soft)] border border-[var(--border-color)] animate-fade-in-up" style={{animationDelay: '100ms'}}>
                 <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6 ml-1">Contact Information</h2>
                 
                 <div className="space-y-6">
                     {/* Address */}
                     <div className="flex items-start gap-4 group">
-                        <div className="w-12 h-12 rounded-[18px] bg-[#ECFDF5] flex items-center justify-center flex-shrink-0 border border-[#D1FAE5] shadow-sm group-hover:scale-110 transition-transform duration-300">
-                            <MapPin className="text-[#064E3B]" size={22} />
+                        <div className="w-12 h-12 rounded-[18px] bg-emerald-500/10 flex items-center justify-center flex-shrink-0 border border-emerald-500/20 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            <MapPin className="text-[var(--text-primary)]" size={22} />
                         </div>
                         <div>
-                            <h3 className="font-bold text-[#27272a] text-base">Visit Store</h3>
+                            <h3 className="font-bold text-[var(--text-primary)] text-base">Visit Store</h3>
                             <p className="text-xs text-gray-500 mt-1 font-medium leading-relaxed">
                                 Main Market Road, Near Railway Station<br/>
                                 Ganjdundwara, Kasganj - 207242<br/>
@@ -102,35 +61,35 @@ export const Contact: React.FC = () => {
                                 href="https://maps.app.goo.gl/z8FjeQ8185246q6eA" 
                                 target="_blank" 
                                 rel="noreferrer"
-                                className="text-[10px] font-bold text-emerald-700 mt-2 inline-flex items-center gap-1 hover:underline bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100"
+                                className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-2 inline-flex items-center gap-1 hover:underline bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20"
                             >
                                 Get Directions <ExternalLink size={10} />
                             </a>
                         </div>
                     </div>
 
-                    <div className="h-px bg-gray-100 w-full"></div>
+                    <div className="h-px bg-[var(--border-color)] w-full"></div>
 
                     {/* Phone */}
                     <div className="flex items-center gap-4 group">
-                        <div className="w-12 h-12 rounded-[18px] bg-[#FFF7ED] flex items-center justify-center flex-shrink-0 border border-[#FFEDD5] shadow-sm group-hover:scale-110 transition-transform duration-300">
-                            <Phone className="text-[#9A3412]" size={22} />
+                        <div className="w-12 h-12 rounded-[18px] bg-orange-500/10 flex items-center justify-center flex-shrink-0 border border-orange-500/20 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            <Phone className="text-orange-600" size={22} />
                         </div>
                         <div>
-                            <h3 className="font-bold text-[#27272a] text-base">Call Us</h3>
-                            <a href="tel:+919368340997" className="text-sm text-[#78350F] font-bold hover:underline tracking-wide block mt-1">+91 9368340997</a>
+                            <h3 className="font-bold text-[var(--text-primary)] text-base">Call Us</h3>
+                            <a href="tel:+919368340997" className="text-sm text-[var(--text-secondary)] font-bold hover:underline tracking-wide block mt-1">+91 9368340997</a>
                         </div>
                     </div>
 
-                    <div className="h-px bg-gray-100 w-full"></div>
+                    <div className="h-px bg-[var(--border-color)] w-full"></div>
 
                     {/* Hours */}
                     <div className="flex items-center gap-4 group">
-                        <div className="w-12 h-12 rounded-[18px] bg-[#EFF6FF] flex items-center justify-center flex-shrink-0 border border-[#DBEAFE] shadow-sm group-hover:scale-110 transition-transform duration-300">
-                            <Clock className="text-[#1E40AF]" size={22} />
+                        <div className="w-12 h-12 rounded-[18px] bg-blue-500/10 flex items-center justify-center flex-shrink-0 border border-blue-500/20 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            <Clock className="text-blue-600" size={22} />
                         </div>
                         <div>
-                            <h3 className="font-bold text-[#27272a] text-base">Opening Hours</h3>
+                            <h3 className="font-bold text-[var(--text-primary)] text-base">Opening Hours</h3>
                             <p className="text-xs text-gray-500 mt-1 font-medium">
                                 Mon - Sat: 9:00 AM - 8:00 PM<br/>
                                 <span className="text-red-500 font-bold">Sunday: Closed</span>
@@ -141,7 +100,7 @@ export const Contact: React.FC = () => {
             </div>
 
             {/* Interactive Map Card - Restored Full Color */}
-            <div className="bg-white p-2 rounded-[28px] shadow-sm border border-gray-100 animate-fade-in-up" style={{animationDelay: '200ms'}}>
+            <div className="bg-[var(--card-bg)] p-2 rounded-[28px] shadow-[var(--shadow-soft)] border border-[var(--border-color)] animate-fade-in-up" style={{animationDelay: '200ms'}}>
                 <div className="h-48 w-full rounded-[24px] overflow-hidden relative group">
                     <iframe 
                         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3536.2163357545465!2d78.93280807534293!3d27.58686697625206!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3975079a49479e05%3A0xe7a01a3089d424b9!2sNew%20Nikhil%20Khad%20Bhandar!5e0!3m2!1sen!2sin!4v1708688400000!5m2!1sen!2sin" 
@@ -153,7 +112,7 @@ export const Contact: React.FC = () => {
                         title="Store Location"
                         className="transition-all duration-700 opacity-95 group-hover:opacity-100"
                     ></iframe>
-                    <div className="absolute inset-0 pointer-events-none border-[4px] border-white/30 rounded-[24px]"></div>
+                    <div className="absolute inset-0 pointer-events-none border-[4px] border-[var(--card-bg)]/30 rounded-[24px]"></div>
                 </div>
             </div>
 
@@ -165,33 +124,33 @@ export const Contact: React.FC = () => {
                     rel="noreferrer"
                     className="bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#F77737] p-[1px] rounded-[24px] shadow-sm group"
                 >
-                    <div className="bg-white rounded-[23px] h-full flex flex-col items-center justify-center p-4 group-hover:bg-opacity-95 transition-all">
+                    <div className="bg-[var(--card-bg)] rounded-[23px] h-full flex flex-col items-center justify-center p-4 group-hover:bg-opacity-95 transition-all">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#E1306C] mb-2 group-hover:scale-110 transition-transform">
                             <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
                             <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
                             <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
                         </svg>
-                        <span className="font-bold text-xs text-gray-700">Follow Us</span>
+                        <span className="font-bold text-xs text-[var(--text-body)]">Follow Us</span>
                     </div>
                 </a>
                 
                 <a 
                     href="mailto:contact@nikhilkhad.com" 
-                    className="bg-white p-4 rounded-[24px] shadow-sm border-2 border-emerald-600/10 flex flex-col items-center justify-center group hover:border-emerald-600/30 transition-all"
+                    className="bg-[var(--card-bg)] p-4 rounded-[24px] shadow-sm border-2 border-emerald-600/10 flex flex-col items-center justify-center group hover:border-emerald-600/30 transition-all"
                 >
                     <Mail size={24} className="text-gray-400 group-hover:text-emerald-600 mb-2 transition-colors" />
-                    <span className="font-bold text-xs text-gray-700">Email Support</span>
+                    <span className="font-bold text-xs text-[var(--text-body)]">Email Support</span>
                 </a>
             </div>
 
             {/* Trust Badge */}
-            <div className="bg-emerald-50/80 backdrop-blur-sm rounded-[24px] p-5 flex items-center gap-4 border border-emerald-100 animate-fade-in-up text-left" style={{animationDelay: '400ms'}}>
-                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Shield className="text-emerald-600" size={20} />
+            <div className="bg-emerald-500/10 backdrop-blur-sm rounded-[24px] p-5 flex items-center gap-4 border border-emerald-500/20 animate-fade-in-up text-left" style={{animationDelay: '400ms'}}>
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Shield className="text-emerald-600 dark:text-emerald-400" size={20} />
                 </div>
                 <div>
-                    <h4 className="text-xs font-black text-emerald-800 uppercase tracking-wide">100% Genuine Products</h4>
-                    <p className="text-[10px] font-medium text-emerald-600 mt-0.5 leading-snug">
+                    <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">100% Genuine Products</h4>
+                    <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400/70 mt-0.5 leading-snug">
                         Trusted by 500+ local farmers for authentic seeds & fertilizers.
                     </p>
                 </div>
@@ -199,8 +158,8 @@ export const Contact: React.FC = () => {
 
             {/* Footer Credits */}
             <div className="text-center pt-10">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4 opacity-50"></div>
-                <p className="text-[10px] font-bold text-[#78350F] tracking-wider opacity-50">
+                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4 opacity-50"></div>
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider opacity-50">
                     EST. 2005 • GANJDUNDWARA<br/>
                     Manager: Abhay
                 </p>
@@ -216,14 +175,6 @@ export const Contact: React.FC = () => {
                             Torn
                         </a>
                     </p>
-                </div>
-
-                {/* Developer Status Panel */}
-                <div className="w-[90%] mx-auto p-[10px] bg-black text-white rounded-[10px] font-mono text-[14px] mt-6">
-                    <p className="font-bold text-yellow-400 mb-2 uppercase">Developer Panel</p>
-                    <p className="break-words">Status: {status === "connected" ? "✅ Connected" : "❌ Error"}</p>
-                    <p className="break-words">User: {userInfo}</p>
-                    {errorMsg && <p className="break-words text-red-400">Error: {errorMsg}</p>}
                 </div>
 
             </div>

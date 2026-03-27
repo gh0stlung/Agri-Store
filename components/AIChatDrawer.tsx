@@ -36,7 +36,7 @@ export const AIChatDrawer: React.FC = () => {
     setIsLoading(true);
 
     try {
-        const apiKey = process.env.API_KEY;
+        const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? (process.env as any).NEXT_PUBLIC_GEMINI_API_KEY : undefined);
         if (!apiKey) throw new Error("API Key missing");
 
         const ai = new GoogleGenAI({ apiKey });

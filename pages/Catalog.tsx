@@ -116,14 +116,6 @@ export const Catalog: React.FC = () => {
     fetchProducts();
   }, [fetchProducts]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 4000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const filteredProducts = products.filter(p => {
     const pCat = p.category ? p.category.toLowerCase().trim() : '';
     const fCat = filter.toLowerCase().trim();
@@ -138,23 +130,23 @@ export const Catalog: React.FC = () => {
   });
 
   return (
-    <AppLayout activePage="catalog" pageTitle="Store Catalog">
-        <div className="space-y-[12px]">
+    <AppLayout activePage="catalog">
+        <div className="space-y-[24px] pt-4">
             {/* STICKY SEARCH BAR */}
-            <div className="w-full px-3 mt-2">
-                <div className="flex items-center bg-white border border-[#E7E5E4] rounded-xl px-2 shadow-sm">
+            <div className="w-full px-3 mt-4">
+                <div className="flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl px-2 shadow-sm transition-colors duration-200">
                     <Search className="text-gray-400" size={14} />
                     <input 
                         type="text" 
                         placeholder="Search seeds, fertilizer..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-[36px] py-0 pl-2 focus:outline-none text-[13px] font-bold text-gray-800 placeholder-gray-400"
+                        className="w-full h-[36px] py-0 pl-2 focus:outline-none text-[13px] font-bold text-[var(--text-body)] placeholder-gray-400 bg-transparent transition-colors duration-200"
                     />
                     {searchTerm && (
                         <button 
                             onClick={() => setSearchTerm('')}
-                            className="p-1 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"
+                            className="p-1 bg-[var(--input-bg)] rounded-full text-gray-500 hover:opacity-80"
                         >
                             <X size={12} />
                         </button>
@@ -164,11 +156,11 @@ export const Catalog: React.FC = () => {
 
             {/* CATEGORY SLIDER (Horizontal Scroll) */}
             {!searchTerm && (
-                <div className="mb-[12px]">
-                    <div className="flex justify-between items-end mb-[8px] px-1">
-                        <h3 className="text-sm font-black text-[#064E3B] font-serif tracking-tight">Categories</h3>
+                <div className="mb-[8px]">
+                    <div className="flex justify-between items-end mb-[8px] px-4">
+                        <h3 className="text-sm font-black text-[var(--text-primary)] font-serif tracking-tight transition-colors duration-200">Categories</h3>
                         {filter !== 'All' && (
-                            <button onClick={() => setFilter('All')} className="text-[11px] font-bold text-gray-500 hover:text-[#064E3B] flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-gray-200 shadow-sm transition-all active:scale-95">
+                            <button onClick={() => setFilter('All')} className="text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-[var(--text-primary)] flex items-center gap-1 bg-[var(--card-bg)] px-2 py-0.5 rounded-full border border-[var(--border-color)] shadow-sm transition-all active:scale-95">
                                 View All <RefreshCw size={10} />
                             </button>
                         )}
@@ -190,9 +182,9 @@ export const Catalog: React.FC = () => {
 
             {/* FILTER STATUS */}
             {filter !== 'All' && (
-                <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="flex items-center gap-2 px-4">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Showing:</span>
-                    <span className="px-2.5 py-1 bg-[#064E3B] text-white text-[10px] font-bold rounded-full shadow-md flex items-center gap-1 transition-all hover:bg-[#053d2e] active:scale-95 cursor-pointer" onClick={() => setFilter('All')}>
+                    <span className="px-2.5 py-1 bg-[var(--primary-btn)] text-white text-[10px] font-bold rounded-full shadow-md flex items-center gap-1 transition-all hover:opacity-90 active:scale-95 cursor-pointer" onClick={() => setFilter('All')}>
                         {filter}
                         <X size={10} className="opacity-80" />
                     </span>
@@ -201,56 +193,61 @@ export const Catalog: React.FC = () => {
 
             {/* PRODUCTS GRID */}
             {loading ? (
-               <div className="px-3 mt-4 w-full">
-                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#064E3B] mb-6 mx-auto"></div>
-                 <div className="grid grid-cols-2 gap-[8px] w-full">
+               <div className="px-3 w-full">
+                 <div className="grid grid-cols-2 gap-[16px] w-full">
                    {[1,2,3,4,5,6].map(i => (
-                     <div key={i} className="h-[110px] rounded-[12px] bg-white border border-gray-100 animate-pulse shadow-sm"></div>
+                     <div key={i} className="flex flex-col gap-2">
+                       <div className="aspect-square w-full skeleton h-[100px]"></div>
+                       <div className="h-4 w-3/4 skeleton"></div>
+                       <div className="h-3 w-1/2 skeleton"></div>
+                     </div>
                    ))}
                  </div>
                </div>
             ) : (!supabase || fetchError) ? (
-               <div className="px-3 mt-4 w-full">
-                 <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-[12px] border border-emerald-100 p-6 shadow-sm">
-                    <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mb-3">
-                        <RefreshCw className="text-emerald-400 animate-spin-slow" size={20} />
+               <div className="px-3 w-full">
+                 <div className="flex flex-col items-center justify-center py-12 text-center bg-[var(--card-bg)] rounded-[24px] border border-emerald-100 dark:border-gray-800 p-8 shadow-sm transition-colors duration-200">
+                    <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-4">
+                        <RefreshCw className={`text-emerald-500 ${fetchError ? '' : 'animate-spin-slow'}`} size={28} />
                     </div>
-                    <h3 className="text-sm font-bold text-gray-800">Products will load soon</h3>
-                    <p className="text-[11px] text-gray-500 mt-1 max-w-[200px] font-medium mx-auto">
-                        We're preparing the latest stock for you. Please wait a moment.
+                    <h3 className="text-lg font-bold text-[var(--text-body)]">
+                        {fetchError ? "Connection Error" : "Preparing Store"}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 max-w-[240px] font-medium mx-auto">
+                        {fetchError ? "We're having trouble reaching our servers. Please check your connection." : "We're updating our inventory with the freshest stock. Hang tight!"}
                     </p>
                     {fetchError && (
                         <button 
                             onClick={fetchProducts}
-                            className="mt-4 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-xs hover:bg-emerald-100 transition-colors"
+                            className="mt-6 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-900/20 active:scale-95 transition-all"
                         >
-                            Refresh
+                            Try Again
                         </button>
                     )}
                  </div>
                </div>
             ) : (
-                <div className="px-3 mt-4 w-full grid grid-cols-2 gap-[8px] min-h-[300px] content-start">
-                    {filteredProducts.map((product, index) => (
-                        <div key={product.id} style={{ animationDelay: `${index * 50}ms` }}>
+                <div className="px-3 w-full grid grid-cols-2 gap-[16px] min-h-[300px] content-start">
+                    {filteredProducts.map((product) => (
+                        <div key={product.id}>
                             <ProductCard product={product} onAdd={addToCart} />
                         </div>
                     ))}
                     
                     {filteredProducts.length === 0 && (
-                        <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 shadow-inner">
-                                <ShoppingBag className="text-gray-400" size={20} />
+                        <div className="col-span-2 flex flex-col items-center justify-center py-16 text-center animate-fade-in">
+                            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800/50 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                                <ShoppingBag className="text-gray-300 dark:text-gray-600" size={32} />
                             </div>
-                            <h3 className="text-sm font-bold text-gray-800">No products available</h3>
-                            <p className="text-[11px] text-gray-500 mt-1 max-w-[200px] font-medium mx-auto">
-                                Try searching for something else or change the category filter.
+                            <h3 className="text-lg font-bold text-[var(--text-body)]">No products found</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 max-w-[220px] font-medium mx-auto">
+                                We couldn't find any items matching your search or filter.
                             </p>
                             <button 
                                 onClick={() => {setFilter('All'); setSearchTerm('');}} 
-                                className="mt-3 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-[13px] shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
+                                className="mt-6 px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[var(--text-body)] rounded-xl font-bold text-sm shadow-sm active:scale-95 transition-all"
                             >
-                                Clear Filters
+                                Reset Filters
                             </button>
                         </div>
                     )}

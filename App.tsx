@@ -8,13 +8,18 @@ import { Catalog } from './pages/Catalog';
 import { Order } from './pages/Order';
 import { TrackOrder } from './pages/TrackOrder';
 import { Contact } from './pages/Contact';
-import { CartDrawer } from './components/CartDrawer';
+import { MyOrders } from './pages/MyOrders';
+import { Cart } from './pages/Cart';
+import Profile from './pages/Profile';
+import { Developer } from './pages/Developer';
 import { AIChatDrawer } from './components/AIChatDrawer';
 import { ScrollToTop } from './components/ScrollToTop';
 import { CartProvider } from './context/CartContext';
 import { AIProvider } from './context/AIContext';
 import { AuthProvider } from './context/AuthContext';
 import { NavigationProvider } from './context/NavigationContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 
@@ -33,6 +38,7 @@ const AppContent: React.FC = () => {
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/track" element={<TrackOrder />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/cart" element={<Cart />} />
         
         {/* Protected Routes */}
         <Route path="/order" element={
@@ -40,9 +46,24 @@ const AppContent: React.FC = () => {
             <Order />
           </ProtectedRoute>
         } />
+        <Route path="/my-orders" element={
+          <ProtectedRoute>
+            <MyOrders />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
         <Route path="/admin" element={
           <AdminProtectedRoute>
             <Admin />
+          </AdminProtectedRoute>
+        } />
+        <Route path="/developer" element={
+          <AdminProtectedRoute>
+            <Developer />
           </AdminProtectedRoute>
         } />
         
@@ -50,7 +71,6 @@ const AppContent: React.FC = () => {
         <Route path="*" element={<Home />} />
       </Routes>
       
-      <CartDrawer />
       <AIChatDrawer />
     </div>
   );
@@ -70,15 +90,19 @@ const AppProviderWrapper = () => {
     };
 
     return (
-        <NavigationProvider value={navValue}>
-             <AIProvider>
-                <AuthProvider>
-                    <CartProvider>
-                        <AppContent />
-                    </CartProvider>
-                </AuthProvider>
-             </AIProvider>
-        </NavigationProvider>
+        <ThemeProvider>
+            <ToastProvider>
+                <NavigationProvider value={navValue}>
+                     <AIProvider>
+                        <AuthProvider>
+                            <CartProvider>
+                                <AppContent />
+                            </CartProvider>
+                        </AuthProvider>
+                     </AIProvider>
+                </NavigationProvider>
+            </ToastProvider>
+        </ThemeProvider>
     );
 };
 
