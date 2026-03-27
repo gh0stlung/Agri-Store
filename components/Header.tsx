@@ -43,6 +43,14 @@ export const Header: React.FC<HeaderProps> = () => {
     push('/');
   };
 
+  const handleLoginClick = () => {
+    if (user) {
+      push('/');
+    } else {
+      push('/login?mode=signup');
+    }
+  };
+
   return (
     <header className="px-4 sticky top-0 z-50 bg-[var(--card-bg)]/80 backdrop-blur-md border-b border-black/5 dark:border-white/5 h-[56px] flex items-center transition-colors duration-200">
         <div className="flex items-center justify-between w-full max-w-md mx-auto">
@@ -104,7 +112,7 @@ export const Header: React.FC<HeaderProps> = () => {
                     </>
                 ) : (
                     <button 
-                       onClick={() => push('/login')}
+                       onClick={handleLoginClick}
                        className="text-xs font-black text-emerald-700 uppercase tracking-widest hover:text-emerald-800 transition-colors"
                     >
                        Login

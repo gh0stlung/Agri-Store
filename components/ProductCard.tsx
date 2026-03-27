@@ -22,15 +22,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
 
   return (
     <div 
-      className={`w-full bg-[var(--card-bg)] rounded-xl shadow-[var(--shadow-soft)] border border-[var(--border-color)] group relative flex flex-col h-full overflow-hidden transition-all duration-300 ${isOutOfStock ? 'opacity-70 grayscale-[0.8]' : 'hover:-translate-y-1 hover:shadow-xl hover:border-emerald-100 dark:hover:border-emerald-900/50 cursor-pointer active:scale-[0.98]'}`}
-      onClick={() => !isOutOfStock && handleAdd(product)}
+      className={`w-full bg-[var(--card-bg)] rounded-xl shadow-[var(--shadow-soft)] border border-[var(--border-color)] group relative flex flex-col h-full overflow-hidden transition-all duration-300 ${isOutOfStock ? 'opacity-70 grayscale-[0.8]' : 'hover:-translate-y-1 hover:shadow-xl hover:border-emerald-100 dark:hover:border-emerald-900/50 active:scale-[0.98]'}`}
     >
       {/* Image Container */}
-      <div className="h-[100px] relative overflow-hidden bg-[var(--input-bg)] m-1 rounded-[10px]">
+      <div className="h-[180px] relative overflow-hidden bg-white p-2 m-1 rounded-[12px]">
         <img 
             src={image_url || 'https://via.placeholder.com/300?text=No+Image'} 
             alt={name} 
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
+            className="w-full h-full object-contain transition-transform duration-700 ease-out group-hover:scale-110" 
             loading="lazy"
         />
         
