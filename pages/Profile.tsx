@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Loader2, Save, User, Phone, MapPin, LogOut, 
-  ChevronRight, Settings, ShieldCheck, Moon, Bell, Languages,
-  Heart, HelpCircle, Sun, Package
+  Loader2, Save, User, Phone, LogOut, 
+  ChevronRight, Settings, ShieldCheck, Moon, Bell,
+  Heart, HelpCircle, Sun
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { AppLayout } from '../components/AppLayout';
@@ -28,7 +28,7 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (user) {
+      if (user && supabase) {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -50,15 +50,22 @@ const Profile: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !supabase) return;
+    
+    // Validation
+    if (!formData.name.trim() || !formData.phone.trim()) {
+      showToast("Please fill in all required fields", "error");
+      return;
+    }
+
     setSaving(true);
     
     const { error } = await supabase
       .from('profiles')
       .update({
         name: formData.name,
-        phone: formData.phone,
-        address: formData.address
+        phone: formData.phone
+        // Removed address to fix "address column not found" error
       })
       .eq('id', user.id);
 
@@ -71,14 +78,9 @@ const Profile: React.FC = () => {
   };
 
   if (loading) return (
-    <AppLayout activePage="profile" pageTitle="My Profile">
-      <div className="max-w-md mx-auto space-y-3 pb-24 px-4 pt-4">
-        <div className="space-y-1">
-          <div className="h-7 w-28 bg-gray-100 dark:bg-gray-800 skeleton rounded-lg" />
-          <div className="h-2.5 w-40 bg-gray-100 dark:bg-gray-800 skeleton rounded" />
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-[28px] p-3 shadow-sm border border-gray-100 dark:border-gray-800">
+    <AppLayout activePage="profile">
+      <div className="max-w-md mx-auto space-y-2 pb-24 px-4 pt-2">
+        <div className="bg-[var(--card-bg)] rounded-[24px] p-3 shadow-sm border border-[var(--border-color)]">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 skeleton rounded-2xl" />
             <div className="flex-1 space-y-1.5">
@@ -105,9 +107,64 @@ const Profile: React.FC = () => {
     </AppLayout>
   );
 
+  if (!user) {
+    return (
+      <AppLayout activePage="profile">
+        <div className="max-w-md mx-auto space-y-4 pb-24 px-4 pt-6">
+          <div className="bg-[var(--card-bg)] rounded-[28px] p-6 shadow-[var(--shadow-soft)] border border-[var(--border-color)] text-center flex flex-col items-center gap-3">
+            <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400">
+              <User size={28} />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-[var(--text-primary)] font-serif">Sign in to view profile</h2>
+              <p className="text-[10px] text-gray-500 mt-1 max-w-[200px] mx-auto">You need to be logged in to manage your personal information.</p>
+            </div>
+            <button 
+              onClick={() => push('/login')}
+              className="w-full bg-[var(--primary-btn)] text-white font-bold py-2.5 rounded-xl shadow-md active:scale-95 transition-all text-xs"
+            >
+              Go to Login Page
+            </button>
+          </div>
+
+          {/* Preferences Section for unauthenticated users */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 px-2">
+              <Settings size={10} className="text-[var(--text-primary)]" />
+              <h3 className="text-[8px] font-black text-[var(--text-primary)] uppercase tracking-widest">Preferences</h3>
+            </div>
+
+            <div className="bg-[var(--card-bg)] rounded-[24px] p-0.5 shadow-[var(--shadow-soft)] border border-[var(--border-color)] overflow-hidden">
+              <div className="flex items-center justify-between p-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${theme === 'dark' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-50 text-gray-600'}`}>
+                    <Moon size={12} />
+                  </div>
+                  <p className="text-[10px] font-bold text-[var(--text-body)]">Dark Mode</p>
+                </div>
+                <button 
+                  onClick={toggleTheme}
+                  className={`w-10 h-5 rounded-full relative transition-all duration-300 flex items-center p-0.5 ${theme === 'dark' ? 'bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.5)]' : 'bg-gray-200'}`}
+                >
+                  <motion.div 
+                    layout
+                    className="w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm"
+                    transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                  >
+                    {theme === 'dark' ? <Moon size={10} className="text-indigo-600" /> : <Sun size={10} className="text-amber-500" />}
+                  </motion.div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
-    <AppLayout activePage="profile" pageTitle="My Profile">
-      <div className="max-w-md mx-auto space-y-3 pb-24 px-4">
+    <AppLayout activePage="profile">
+      <div className="max-w-md mx-auto space-y-2.5 pb-24 px-4 pt-2">
         
         {/* Profile Header Card */}
         <motion.div 
@@ -154,15 +211,15 @@ const Profile: React.FC = () => {
             <h3 className="text-[8px] font-black text-[var(--text-primary)] uppercase tracking-widest">Personal Information</h3>
           </div>
 
-          <div className="bg-[var(--card-bg)] rounded-[24px] p-3 shadow-[var(--shadow-soft)] border border-[var(--border-color)] space-y-2">
-            <form onSubmit={handleSave} className="space-y-2">
+          <div className="bg-[var(--card-bg)] rounded-[24px] p-2.5 shadow-[var(--shadow-soft)] border border-[var(--border-color)] space-y-1.5">
+            <form onSubmit={handleSave} className="space-y-1.5">
               <div className="space-y-0.5">
                 <label className="text-[7px] font-bold text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
                 <div className="relative group">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors" size={12} />
                   <input 
                     type="text" 
-                    className="w-full pl-9 pr-3 py-1.5 rounded-[12px] border border-[var(--border-color)] focus:ring-1 focus:ring-[var(--text-primary)]/20 focus:border-[var(--text-primary)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] transition-all text-xs"
+                    className="w-full pl-9 pr-3 h-[40px] rounded-[12px] border border-[var(--border-color)] focus:ring-1 focus:ring-[var(--text-primary)]/20 focus:border-[var(--text-primary)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] transition-all text-xs"
                     placeholder="Enter your name"
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
@@ -176,24 +233,10 @@ const Profile: React.FC = () => {
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors" size={12} />
                   <input 
                     type="tel" 
-                    className="w-full pl-9 pr-3 py-1.5 rounded-[12px] border border-[var(--border-color)] focus:ring-1 focus:ring-[var(--text-primary)]/20 focus:border-[var(--text-primary)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] transition-all text-xs"
+                    className="w-full pl-9 pr-3 h-[40px] rounded-[12px] border border-[var(--border-color)] focus:ring-1 focus:ring-[var(--text-primary)]/20 focus:border-[var(--text-primary)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] transition-all text-xs"
                     placeholder="Enter mobile number"
                     value={formData.phone}
                     onChange={e => setFormData({...formData, phone: e.target.value})}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-0.5">
-                <label className="text-[7px] font-bold text-gray-400 uppercase tracking-widest ml-1">Delivery Address</label>
-                <div className="relative group">
-                  <MapPin className="absolute left-3 top-2.5 text-gray-400 transition-colors" size={12} />
-                  <textarea 
-                    rows={2}
-                    className="w-full pl-9 pr-3 py-1.5 rounded-[12px] border border-[var(--border-color)] focus:ring-1 focus:ring-[var(--text-primary)]/20 focus:border-[var(--text-primary)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] transition-all resize-none text-xs"
-                    placeholder="Enter full address"
-                    value={formData.address}
-                    onChange={e => setFormData({...formData, address: e.target.value})}
                   />
                 </div>
               </div>
@@ -201,7 +244,7 @@ const Profile: React.FC = () => {
               <button 
                 type="submit" 
                 disabled={saving}
-                className="w-full bg-[var(--primary-btn)] hover:opacity-90 text-white font-bold py-2 rounded-[14px] shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs mt-1"
+                className="w-full bg-[var(--primary-btn)] hover:opacity-90 text-white font-bold h-[40px] rounded-[12px] shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs mt-1"
               >
                 {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                 {saving ? 'Updating...' : 'Save Profile'}
@@ -215,23 +258,21 @@ const Profile: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="space-y-2"
+          className="space-y-1.5"
         >
           <div className="flex items-center gap-2 px-2">
-            <Settings size={12} className="text-[var(--text-primary)]" />
-            <h3 className="text-[9px] font-black text-[var(--text-primary)] uppercase tracking-widest">Preferences</h3>
+            <Settings size={10} className="text-[var(--text-primary)]" />
+            <h3 className="text-[8px] font-black text-[var(--text-primary)] uppercase tracking-widest">Preferences</h3>
           </div>
 
-          <div className="bg-[var(--card-bg)] rounded-[28px] p-0.5 shadow-[var(--shadow-soft)] border border-[var(--border-color)] overflow-hidden">
+          <div className="bg-[var(--card-bg)] rounded-[24px] p-0.5 shadow-[var(--shadow-soft)] border border-[var(--border-color)] overflow-hidden">
             <div className="divide-y divide-[var(--border-color)]/30">
-              <div className="flex items-center justify-between p-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${theme === 'dark' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-50 text-gray-600'}`}>
-                    <Moon size={14} />
+              <div className="flex items-center justify-between p-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${theme === 'dark' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-50 text-gray-600'}`}>
+                    <Moon size={12} />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-body)]">Dark Mode</p>
-                  </div>
+                  <p className="text-[10px] font-bold text-[var(--text-body)]">Dark Mode</p>
                 </div>
                 <button 
                   onClick={toggleTheme}
@@ -252,59 +293,38 @@ const Profile: React.FC = () => {
                   <div className="w-7 h-7 bg-[var(--input-bg)] rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-400">
                     <Bell size={12} />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-body)]">Notifications</p>
-                  </div>
+                  <p className="text-[10px] font-bold text-[var(--text-body)]">Notifications</p>
                 </div>
                 <div className="w-8 h-4 bg-emerald-500/20 rounded-full relative cursor-pointer">
                   <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-emerald-600 rounded-full"></div>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between p-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-[var(--input-bg)] rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-400">
-                    <Languages size={14} />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-[var(--text-body)]">Language</p>
-                    <p className="text-[8px] font-medium text-gray-400">English (US)</p>
-                  </div>
-                </div>
-                <ChevronRight size={12} className="text-gray-300" />
-              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Quick Links & Actions */}
+        {/* Actions */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="space-y-1"
+          className="space-y-2"
         >
-          <div className="grid grid-cols-2 gap-2">
-            <button 
-              onClick={() => push('/my-orders')}
-              className="bg-[var(--card-bg)] border border-[var(--border-color)] p-2 rounded-[16px] flex flex-col items-center gap-0.5 shadow-sm hover:opacity-80 transition-all group"
-            >
-              <div className="w-7 h-7 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Package size={14} />
+          <div className="grid grid-cols-1 gap-2">
+            <button className="bg-[var(--card-bg)] border border-[var(--border-color)] p-2.5 rounded-[16px] flex items-center justify-between shadow-sm hover:opacity-80 transition-all group">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Heart size={14} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">My Wishlist</span>
               </div>
-              <span className="text-[7px] font-bold text-gray-500 uppercase tracking-widest">Orders</span>
-            </button>
-            <button className="bg-[var(--card-bg)] border border-[var(--border-color)] p-2 rounded-[16px] flex flex-col items-center gap-0.5 shadow-sm hover:opacity-80 transition-all group">
-              <div className="w-7 h-7 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Heart size={14} />
-              </div>
-              <span className="text-[7px] font-bold text-gray-500 uppercase tracking-widest">Wishlist</span>
+              <ChevronRight size={14} className="text-gray-300" />
             </button>
           </div>
 
           <button 
             onClick={() => signOut()}
-            className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-black py-2 rounded-[16px] shadow-sm transition-all flex items-center justify-center gap-2 border border-red-500/20 active:scale-[0.98]"
+            className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-black py-2.5 rounded-[16px] shadow-sm transition-all flex items-center justify-center gap-2 border border-red-500/20 active:scale-[0.98]"
           >
             <LogOut size={14} />
             <span className="text-xs font-serif">Sign Out</span>

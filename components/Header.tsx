@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { User, LogOut, ShieldCheck, ArrowLeft, Code } from 'lucide-react';
+import { User, LogOut, ShieldCheck, Code } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,8 +9,8 @@ interface HeaderProps {
   showBack?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
-  const { push, back, pathname } = useNavigation();
+export const Header: React.FC<HeaderProps> = () => {
+  const { push, pathname } = useNavigation();
   const { user, signOut } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -26,8 +26,6 @@ export const Header: React.FC<HeaderProps> = ({ title, showBack }) => {
   }, []);
 
   const isAdmin = user?.email?.toLowerCase() === 'admin69@gmail.com';
-  const isHome = pathname === '/' || pathname === '/home';
-  const shouldShowBack = showBack ?? !isHome;
 
   const handleAdminClick = () => {
     push('/admin');
