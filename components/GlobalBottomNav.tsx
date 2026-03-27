@@ -4,11 +4,11 @@ import { Home, ShoppingBag, MapPin, ShoppingCart, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { motion } from 'motion/react';
 
-interface BottomNavProps {
+interface GlobalBottomNavProps {
   activePage: string;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activePage }) => {
+export const GlobalBottomNav: React.FC<GlobalBottomNavProps> = ({ activePage }) => {
   const { cart } = useCart();
 
   const navItems = [
@@ -20,7 +20,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activePage }) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-50 h-[65px] bg-[var(--card-bg)]/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 flex items-center justify-around px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] transition-colors duration-200">
+    <nav className="fixed bottom-0 left-0 w-full z-[999] h-[65px] bg-[rgba(20,30,50,0.6)] backdrop-blur-[20px] [-webkit-backdrop-filter:blur(20px)] border-t border-[rgba(255,255,255,0.08)] flex items-center justify-around px-2 shadow-[0_-4px_20px_rgba(0,255,150,0.15)] transition-colors duration-200">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = activePage === item.id;

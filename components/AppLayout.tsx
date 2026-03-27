@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { BottomNav } from './BottomNav';
+import { GlobalBottomNav } from './GlobalBottomNav';
 import { Header } from './Header';
 import { useNavigation } from '../context/NavigationContext';
 
@@ -13,7 +13,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activePage, page
   const { pathname } = useNavigation();
 
   return (
-    <div className="max-w-[420px] mx-auto w-full bg-[var(--bg-main)] min-h-screen relative flex flex-col shadow-2xl overflow-x-hidden transition-colors duration-300">
+    <div className="w-full bg-[var(--bg-main)] min-h-screen relative flex flex-col shadow-2xl overflow-x-hidden transition-colors duration-300">
         <Header title={pageTitle} />
 
         <AnimatePresence mode="wait">
@@ -23,7 +23,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activePage, page
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="p-4 space-y-4 pb-20 flex-grow relative z-10"
+            className="p-2 space-y-4 pb-20 flex-grow relative z-10 w-full box-border"
           >
               {/* Page Title - Only if provided and not on home */}
               {pageTitle && pathname !== '/' && pathname !== '/home' && (
@@ -38,7 +38,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activePage, page
           </motion.main>
         </AnimatePresence>
         
-        <BottomNav activePage={activePage} />
+        <GlobalBottomNav activePage={activePage} />
     </div>
   );
 };

@@ -22,7 +22,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ cat, isActive, onClick }) =
     return (
         <div 
             onClick={onClick}
-            className={`w-[110px] aspect-square rounded-xl overflow-hidden relative flex-shrink-0 cursor-pointer transition-all duration-200 ${
+            className={`w-[110px] aspect-square rounded-xl overflow-hidden relative flex-shrink-0 cursor-pointer transition-all duration-200 snap-start ${
                 isActive ? 'border-2 border-[#16a34a]' : 'shadow-sm'
             }`}
         >
@@ -131,17 +131,17 @@ export const Catalog: React.FC = () => {
 
   return (
     <AppLayout activePage="catalog">
-        <div className="space-y-[24px] pt-4">
+        <div className="w-full">
             {/* STICKY SEARCH BAR */}
-            <div className="w-full px-3 mt-4">
-                <div className="flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl px-2 shadow-sm transition-colors duration-200">
-                    <Search className="text-gray-400" size={14} />
+            <div className="w-full h-[50px] mb-3 px-3">
+                <div className="flex items-center bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl px-2 shadow-sm transition-colors duration-200 h-full">
+                    <Search className="text-gray-400" size={16} />
                     <input 
                         type="text" 
                         placeholder="Search seeds, fertilizer..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-[36px] py-0 pl-2 focus:outline-none text-[13px] font-bold text-[var(--text-body)] placeholder-gray-400 bg-transparent transition-colors duration-200"
+                        className="w-full h-full py-0 pl-2 focus:outline-none text-[13px] font-bold text-[var(--text-body)] placeholder-gray-400 bg-transparent transition-colors duration-200"
                     />
                     {searchTerm && (
                         <button 
@@ -156,8 +156,8 @@ export const Catalog: React.FC = () => {
 
             {/* CATEGORY SLIDER (Horizontal Scroll) */}
             {!searchTerm && (
-                <div className="mb-[8px]">
-                    <div className="flex justify-between items-end mb-[8px] px-4">
+                <div className="mt-1 mb-4 pt-2 pb-3 overflow-visible h-auto min-h-fit -ml-1">
+                    <div className="flex justify-between items-end mb-[16px] px-3">
                         <h3 className="text-sm font-black text-[var(--text-primary)] font-serif tracking-tight transition-colors duration-200">Categories</h3>
                         {filter !== 'All' && (
                             <button onClick={() => setFilter('All')} className="text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-[var(--text-primary)] flex items-center gap-1 bg-[var(--card-bg)] px-2 py-0.5 rounded-full border border-[var(--border-color)] shadow-sm transition-all active:scale-95">
@@ -167,7 +167,7 @@ export const Catalog: React.FC = () => {
                     </div>
                     
                     {/* Scroll Container */}
-                    <div className="flex gap-3 px-3 mt-3 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: "touch" }}>
+                    <div className="flex gap-3 pl-3 pr-3 pb-2.5 scroll-pl-3 scroll-pr-3 snap-x snap-mandatory overflow-x-auto overflow-y-visible mb-2" style={{ WebkitOverflowScrolling: "touch", scrollbarGutter: "stable" }}>
                         {CATEGORIES.map((cat) => (
                             <CategoryItem 
                                 key={cat.name} 
@@ -182,7 +182,7 @@ export const Catalog: React.FC = () => {
 
             {/* FILTER STATUS */}
             {filter !== 'All' && (
-                <div className="flex items-center gap-2 px-4">
+                <div className="flex items-center gap-2 px-3 mb-3">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Showing:</span>
                     <span className="px-2.5 py-1 bg-[var(--primary-btn)] text-white text-[10px] font-bold rounded-full shadow-md flex items-center gap-1 transition-all hover:opacity-90 active:scale-95 cursor-pointer" onClick={() => setFilter('All')}>
                         {filter}
@@ -193,7 +193,7 @@ export const Catalog: React.FC = () => {
 
             {/* PRODUCTS GRID */}
             {loading ? (
-               <div className="px-3 w-full">
+               <div className="w-full mt-3 px-3">
                  <div className="grid grid-cols-2 gap-[16px] w-full">
                    {[1,2,3,4,5,6].map(i => (
                      <div key={i} className="flex flex-col gap-2">
@@ -205,7 +205,7 @@ export const Catalog: React.FC = () => {
                  </div>
                </div>
             ) : (!supabase || fetchError) ? (
-               <div className="px-3 w-full">
+               <div className="w-full mt-3 px-3">
                  <div className="flex flex-col items-center justify-center py-12 text-center bg-[var(--card-bg)] rounded-[24px] border border-emerald-100 dark:border-gray-800 p-8 shadow-sm transition-colors duration-200">
                     <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-4">
                         <RefreshCw className={`text-emerald-500 ${fetchError ? '' : 'animate-spin-slow'}`} size={28} />
@@ -227,7 +227,7 @@ export const Catalog: React.FC = () => {
                  </div>
                </div>
             ) : (
-                <div className="px-3 w-full grid grid-cols-2 gap-[16px] min-h-[300px] content-start">
+                <div className="w-full grid grid-cols-2 gap-[16px] min-h-[300px] content-start mt-3 px-3">
                     {filteredProducts.map((product) => (
                         <div key={product.id}>
                             <ProductCard product={product} onAdd={addToCart} />

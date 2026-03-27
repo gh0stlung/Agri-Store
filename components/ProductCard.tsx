@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, AlertCircle } from 'lucide-react';
 import { Product } from '../types';
 
@@ -11,10 +11,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
   const { name, category, price, image_url, stock, unit } = product;
   const isOutOfStock = stock <= 0;
 
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAdd = (product: Product) => {
+    if (isAdding) return;
+    setIsAdding(true);
+    onAdd(product);
+    setTimeout(() => setIsAdding(false), 300);
+  };
+
   return (
     <div 
       className={`w-full bg-[var(--card-bg)] rounded-xl shadow-[var(--shadow-soft)] border border-[var(--border-color)] group relative flex flex-col h-full overflow-hidden transition-all duration-300 ${isOutOfStock ? 'opacity-70 grayscale-[0.8]' : 'hover:-translate-y-1 hover:shadow-xl hover:border-emerald-100 dark:hover:border-emerald-900/50 cursor-pointer active:scale-[0.98]'}`}
-      onClick={() => !isOutOfStock && onAdd(product)}
+      onClick={() => !isOutOfStock && handleAdd(product)}
     >
       {/* Image Container */}
       <div className="h-[100px] relative overflow-hidden bg-[var(--input-bg)] m-1 rounded-[10px]">
@@ -64,10 +73,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
                     ? 'bg-[var(--input-bg)] text-gray-400' 
                     : 'bg-[var(--primary-btn)] text-white hover:opacity-90 shadow-emerald-900/20'
                 }`}
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || isAdding}
                 onClick={(e) => {
                   e.stopPropagation();
-                  !isOutOfStock && onAdd(product);
+                  !isOutOfStock && handleAdd(product);
                 }}
               >
                   <Plus size={12} strokeWidth={3} />

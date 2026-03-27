@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = () => {
-  const { push, pathname } = useNavigation();
+  const { push } = useNavigation();
   const { user, signOut } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = () => {
                         </button>
 
                         {showDropdown && (
-                            <div className="absolute right-0 top-full mt-3 w-56 bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 py-2 z-[100] animate-in fade-in zoom-in duration-200 origin-top-right">
+                            <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 py-2 z-[100] animate-in fade-in zoom-in duration-200 origin-top-right">
                                 <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 mb-1">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Account</p>
                                     <p className="text-xs font-bold text-[var(--text-body)] truncate">{user.email}</p>

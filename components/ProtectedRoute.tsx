@@ -14,7 +14,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <p style={{ textAlign: "center", marginTop: "50px", fontWeight: "bold", color: "#064E3B" }}>Loading...</p>;
   }
 
-  if (!user) {
+  if (!user && location.pathname !== '/profile') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
