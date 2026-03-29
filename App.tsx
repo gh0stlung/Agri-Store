@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Admin } from './pages/Admin';
@@ -108,8 +108,8 @@ const AppProviderWrapper = () => {
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
         <AppProviderWrapper />
-    </HashRouter>
+    </BrowserRouter>
   );
 }
