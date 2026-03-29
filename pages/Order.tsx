@@ -15,10 +15,11 @@ export const Order: React.FC = () => {
   
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    mobile: '',
     address: ''
   });
   const [profile, setProfile] = useState<any>(null);
+  const [useSavedProfile, setUseSavedProfile] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
@@ -33,7 +34,24 @@ export const Order: React.FC = () => {
   // Fetch profile and pre-fill form
   useEffect(() => {
     const fetchProfile = async () => {
-      if (user) {
+      if (user && supabase) {
+        // Check local storage first for fast auto-fill
+        const localProfile = localStorage.getItem(`profile_${user.id}`);
+        if (localProfile) {
+          try {
+            const parsed = JSON.parse(localProfile);
+            if (parsed.name || parsed.mobile || parsed.address) {
+              setProfile(parsed);
+              setFormData({
+                name: parsed.name || '',
+                mobile: parsed.mobile || '',
+                address: parsed.address || ''
+              });
+              setUseSavedProfile(true);
+            }
+          } catch(e) {}
+        }
+
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -44,9 +62,13 @@ export const Order: React.FC = () => {
           setProfile(data);
           setFormData({
             name: data.name || '',
-            phone: data.phone || '',
+            mobile: data.mobile || '',
             address: data.address || ''
           });
+          if (data.name || data.mobile || data.address) {
+            setUseSavedProfile(true);
+          }
+          localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
         }
       }
     };
@@ -61,6 +83,7 @@ export const Order: React.FC = () => {
         return;
       }
 
+      if (!supabase) throw new Error('Supabase not initialized');
       const { data } = await supabase.auth.getUser();
 
       if (!data.user) {
@@ -76,7 +99,7 @@ export const Order: React.FC = () => {
         {
           user_id: data.user.id,
           customer_name: formData.name || profile?.name || "Guest",
-          phone: formData.phone || profile?.phone || "",
+          phone: formData.mobile || profile?.mobile || "",
           address: formData.address || profile?.address || "",
           items: cart,
           total: total,
@@ -121,7 +144,7 @@ export const Order: React.FC = () => {
             <div className="bg-emerald-500/10 rounded-xl p-4 mb-6 border border-emerald-500/20">
                 <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Order ID: {confirmedOrderId}</p>
                 <p className="text-[10px] text-[var(--text-body)] opacity-70 leading-relaxed">
-                    You can track your order status anytime using your mobile number <strong>{formData.phone}</strong>.
+                    You can track your order status anytime using your mobile number <strong>{formData.mobile}</strong>.
                 </p>
                 <Link href="/track" className="mt-3 block bg-[var(--card-bg)] text-emerald-600 dark:text-emerald-400 text-xs font-bold py-2 rounded-lg shadow-sm border border-[var(--border-color)] hover:opacity-80 transition-colors">
                     Track Order Now
@@ -175,43 +198,78 @@ export const Order: React.FC = () => {
 
         {/* Details Form */}
         <form onSubmit={handleOrder} className="space-y-4">
-            <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2 ml-1">Delivery Details</h3>
-            
-            <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
-                <input 
-                    type="text" 
-                    required 
-                    className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
-                    placeholder="Full Name"
-                    value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                />
+            <div className="flex justify-between items-center mb-2 ml-1">
+                <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">Delivery Details</h3>
+                {useSavedProfile && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-full flex items-center gap-1">
+                            <CheckCircle size={10} /> Using saved details
+                        </span>
+                        <button 
+                            type="button" 
+                            onClick={() => push('/profile')}
+                            className="text-[10px] text-[var(--primary-btn)] font-bold hover:underline"
+                        >
+                            Edit
+                        </button>
+                    </div>
+                )}
             </div>
             
-            <div className="relative group">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
-                <input 
-                    type="tel" 
-                    required 
-                    className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
-                    placeholder="Mobile Number"
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                />
-            </div>
-            
-            <div className="relative group">
-                <MapPin className="absolute left-4 top-4 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
-                <textarea 
-                    required 
-                    rows={3}
-                    className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all resize-none"
-                    placeholder="Full Address (Village, Landmark...)"
-                    value={formData.address}
-                    onChange={e => setFormData({...formData, address: e.target.value})}
-                />
-            </div>
+            {useSavedProfile ? (
+                <div className="bg-[var(--card-bg)] rounded-[16px] p-4 border border-[var(--border-color)] shadow-sm space-y-3">
+                    <div className="flex items-center gap-3">
+                        <User className="text-gray-400" size={18} />
+                        <span className="font-bold text-[var(--text-primary)]">{formData.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Phone className="text-gray-400" size={18} />
+                        <span className="font-bold text-[var(--text-primary)]">{formData.mobile}</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <MapPin className="text-gray-400 mt-0.5" size={18} />
+                        <span className="font-bold text-[var(--text-primary)] text-sm">{formData.address}</span>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <div className="relative group">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
+                        <input 
+                            type="text" 
+                            required 
+                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
+                            placeholder="Full Name"
+                            value={formData.name}
+                            onChange={e => setFormData({...formData, name: e.target.value})}
+                        />
+                    </div>
+                    
+                    <div className="relative group">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
+                        <input 
+                            type="tel" 
+                            required 
+                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
+                            placeholder="Mobile Number"
+                            value={formData.mobile}
+                            onChange={e => setFormData({...formData, mobile: e.target.value})}
+                        />
+                    </div>
+                    
+                    <div className="relative group">
+                        <MapPin className="absolute left-4 top-4 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
+                        <textarea 
+                            required 
+                            rows={3}
+                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all resize-none"
+                            placeholder="Full Address (Village, Landmark...)"
+                            value={formData.address}
+                            onChange={e => setFormData({...formData, address: e.target.value})}
+                        />
+                    </div>
+                </>
+            )}
 
             <button 
                 type="submit" 

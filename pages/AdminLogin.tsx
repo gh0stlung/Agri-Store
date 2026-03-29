@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Lock, ArrowLeft, Loader2, Mail, ShieldCheck } from 'lucide-react';
+import { Lock, ArrowLeft, Loader2, Mail, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { Link } from '../components/Link';
 
 export const AdminLogin: React.FC = () => {
@@ -8,6 +8,7 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,6 +16,7 @@ export const AdminLogin: React.FC = () => {
     setError('');
 
     try {
+      if (!supabase) throw new Error('Supabase not initialized');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
@@ -110,13 +112,21 @@ export const AdminLogin: React.FC = () => {
                             <Lock size={16} />
                         </div>
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md"
+                            className="w-full pl-10 pr-12 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md pointer-events-auto"
                             placeholder="••••••••"
                         />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            onMouseDown={(e) => e.preventDefault()}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-200/50 hover:text-emerald-400 transition-colors z-10 pointer-events-auto touch-manipulation"
+                        >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
                     </div>
                 </div>
                 

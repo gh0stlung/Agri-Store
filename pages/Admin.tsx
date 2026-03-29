@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useNavigation } from '../context/NavigationContext';
 import { Product, Order, StoreUpdate } from '../types';
@@ -9,9 +9,70 @@ import {
   Inbox
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import Cropper from 'react-easy-crop';
 
 import { AppLayout } from '../components/AppLayout';
 import { useToast } from '../context/ToastContext';
+
+// Helper function to create image
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image()
+    image.addEventListener('load', () => resolve(image))
+    image.addEventListener('error', (error) => reject(error))
+    image.setAttribute('crossOrigin', 'anonymous') // needed to avoid cross-origin issues on CodeSandbox
+    image.src = url
+  })
+
+// Helper function to get cropped image
+async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: any,
+  rotation = 0,
+  flip = { horizontal: false, vertical: false }
+): Promise<string> {
+  const image = await createImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+
+  if (!ctx) {
+    return ''
+  }
+
+  canvas.width = image.width
+  canvas.height = image.height
+
+  ctx.translate(image.width / 2, image.height / 2)
+  ctx.rotate((rotation * Math.PI) / 180)
+  ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1)
+  ctx.translate(-image.width / 2, -image.height / 2)
+
+  ctx.drawImage(image, 0, 0)
+
+  const croppedCanvas = document.createElement('canvas')
+  const croppedCtx = croppedCanvas.getContext('2d')
+
+  if (!croppedCtx) {
+    return ''
+  }
+
+  croppedCanvas.width = pixelCrop.width
+  croppedCanvas.height = pixelCrop.height
+
+  croppedCtx.drawImage(
+    canvas,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  )
+
+  return croppedCanvas.toDataURL('image/jpeg', 0.8)
+}
 
 export const Admin: React.FC = () => {
   const { push } = useNavigation();
@@ -31,6 +92,12 @@ export const Admin: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Crop State
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   
   // Product Form
   const [productForm, setProductForm] = useState<Partial<Product>>({ 
@@ -63,6 +130,7 @@ export const Admin: React.FC = () => {
 
   const loadProducts = async () => {
     try {
+      if (!supabase) return;
       const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setProducts(data || []);
@@ -75,6 +143,7 @@ export const Admin: React.FC = () => {
 
   const loadOrders = async () => {
     try {
+      if (!supabase) return;
       const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setOrders(data || []);
@@ -87,6 +156,7 @@ export const Admin: React.FC = () => {
 
   const loadUpdates = async () => {
     try {
+      if (!supabase) return;
       const { data, error } = await supabase.from('updates').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setUpdates(data || []);
@@ -108,9 +178,25 @@ export const Admin: React.FC = () => {
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onloadend = () => {
-          setProductForm(prev => ({ ...prev, image_url: reader.result as string }));
+          setCropImageSrc(reader.result as string);
       };
       reader.readAsDataURL(file);
+  };
+
+  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handleCropImage = async () => {
+    try {
+      if (!cropImageSrc || !croppedAreaPixels) return;
+      const croppedImage = await getCroppedImg(cropImageSrc, croppedAreaPixels);
+      setProductForm(prev => ({ ...prev, image_url: croppedImage }));
+      setCropImageSrc(null);
+    } catch (e) {
+      console.error(e);
+      showToast("Error cropping image", "error");
+    }
   };
 
   // Optional AI Feature: Autofill details from Name
@@ -244,6 +330,7 @@ export const Admin: React.FC = () => {
       showToast("Enter update message", "error");
       return;
     }
+    if (!supabase) return;
 
     setIsSaving(true);
     const { error } = await supabase.from("updates").insert([
@@ -450,7 +537,7 @@ export const Admin: React.FC = () => {
                         />
                     </div>
                     <button 
-                        onClick={() => setIsFormOpen(true)}
+                        onClick={() => { resetForms(); setIsFormOpen(true); }}
                         className="bg-[var(--primary-btn)] text-white px-4 md:px-6 rounded-[12px] font-bold text-sm shadow-lg flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all whitespace-nowrap"
                     >
                         <Plus size={18} /> <span className="hidden md:inline">Add Product</span>
@@ -470,22 +557,22 @@ export const Admin: React.FC = () => {
                             </div>
                             
                             {/* Polished Modal Content with Tighter Spacing */}
-                            <div className="overflow-y-auto p-5">
-                                <form onSubmit={saveProduct} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="overflow-y-auto p-5 pb-6">
+                                <form id="product-form" onSubmit={saveProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="md:col-span-2 space-y-3">
-                                        <div className="flex flex-col items-center justify-center gap-2 p-3 border-2 border-dashed border-[var(--border-color)] rounded-[16px] bg-[var(--bg-main)]/50 hover:bg-[var(--bg-main)] transition-colors relative group">
+                                        <div className="flex flex-col items-center justify-center gap-3 p-4 border-2 border-dashed border-[var(--border-color)] rounded-[16px] bg-[var(--bg-main)]/50 hover:bg-[var(--bg-main)] transition-colors relative group">
                                             {productForm.image_url ? (
-                                                <div className="relative w-24 h-24 rounded-[12px] overflow-hidden shadow-sm border border-[var(--border-color)]">
+                                                <div className="relative w-32 h-32 rounded-[16px] overflow-hidden shadow-sm border border-[var(--border-color)]">
                                                     <img src={productForm.image_url} alt="Preview" className="w-full h-full object-cover" />
                                                 </div>
                                             ) : (
-                                                <div className="w-12 h-12 bg-[var(--card-bg)] rounded-full flex items-center justify-center shadow-sm text-gray-300 border border-[var(--border-color)]">
-                                                    <ImageIcon size={24} />
+                                                <div className="w-16 h-16 bg-[var(--card-bg)] rounded-full flex items-center justify-center shadow-sm text-gray-300 border border-[var(--border-color)]">
+                                                    <ImageIcon size={32} />
                                                 </div>
                                             )}
                                             
                                             <label className="cursor-pointer">
-                                                <span className="bg-[var(--card-bg)] text-[var(--text-body)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] text-[10px] font-bold shadow-sm hover:bg-[var(--bg-main)] transition-all inline-block">
+                                                <span className="bg-[var(--card-bg)] text-[var(--text-body)] px-4 py-2 rounded-xl border border-[var(--border-color)] text-xs font-bold shadow-sm hover:bg-[var(--bg-main)] transition-all inline-block">
                                                     {isSaving ? 'Processing...' : 'Choose Image'}
                                                 </span>
                                                 <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" disabled={isSaving} />
@@ -553,12 +640,43 @@ export const Admin: React.FC = () => {
                                             />
                                         </button>
                                     </div>
-
-                                    <button type="submit" disabled={isSaving} className="md:col-span-2 bg-[var(--primary-btn)] text-white py-4 rounded-[12px] font-bold shadow-lg hover:opacity-90 active:scale-[0.98] transition-all text-sm flex justify-center items-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                                        {editingId ? 'Update Product' : 'Save Product'}
-                                    </button>
                                 </form>
+                            </div>
+                            <div className="bg-[var(--card-bg)] p-4 border-t border-[var(--border-color)] sticky bottom-0 z-20 shrink-0 w-full">
+                                <button form="product-form" type="submit" disabled={isSaving} className="w-full bg-[var(--primary-btn)] text-white py-4 rounded-[12px] font-bold shadow-lg hover:opacity-90 active:scale-[0.98] transition-all text-sm flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                    {editingId ? 'Update Product' : 'Save Product'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {cropImageSrc && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setCropImageSrc(null)} />
+                        <div className="bg-[var(--card-bg)] rounded-[24px] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col border border-[var(--border-color)]">
+                            <div className="bg-[var(--bg-main)] px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center sticky top-0 z-20 shrink-0">
+                                <h3 className="font-bold text-[var(--text-primary)] text-lg flex items-center gap-2 font-serif">
+                                    <ImageIcon size={18} className="text-emerald-600"/>
+                                    Crop Image
+                                </h3>
+                                <button onClick={() => setCropImageSrc(null)} className="bg-[var(--card-bg)] p-2 rounded-full hover:bg-[var(--bg-main)] border border-[var(--border-color)] transition-colors text-gray-500"><X size={18} /></button>
+                            </div>
+                            <div className="relative w-full h-[400px] bg-black/10">
+                                <Cropper
+                                  image={cropImageSrc}
+                                  crop={crop}
+                                  zoom={zoom}
+                                  aspect={1}
+                                  onCropChange={setCrop}
+                                  onCropComplete={onCropComplete}
+                                  onZoomChange={setZoom}
+                                />
+                            </div>
+                            <div className="p-4 bg-[var(--bg-main)] border-t border-[var(--border-color)] flex justify-end gap-2">
+                                <button onClick={() => setCropImageSrc(null)} className="px-4 py-2 rounded-[12px] font-bold text-sm text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                                <button onClick={handleCropImage} className="bg-[var(--primary-btn)] text-white px-6 py-2 rounded-[12px] font-bold text-sm shadow-lg hover:opacity-90 active:scale-95 transition-all">Crop & Save</button>
                             </div>
                         </div>
                     </div>

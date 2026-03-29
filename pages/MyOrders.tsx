@@ -13,7 +13,7 @@ export const MyOrders: React.FC = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!user) {
+      if (!user || !supabase) {
         setLoading(false);
         return;
       }

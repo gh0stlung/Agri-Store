@@ -34,6 +34,7 @@ export const Login: React.FC = () => {
 
     if (isLogin) {
       try {
+        if (!supabase) throw new Error('Supabase not initialized');
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password: password.trim(),
@@ -61,6 +62,7 @@ export const Login: React.FC = () => {
       }
     } else {
       try {
+        if (!supabase) throw new Error('Supabase not initialized');
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password: password.trim(),
@@ -162,13 +164,14 @@ export const Login: React.FC = () => {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-12 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md"
+                            className="w-full pl-10 pr-12 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md pointer-events-auto"
                             placeholder="••••••••"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-200/50 hover:text-emerald-400 transition-colors"
+                            onMouseDown={(e) => e.preventDefault()}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-200/50 hover:text-emerald-400 transition-colors z-10 pointer-events-auto touch-manipulation"
                         >
                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
@@ -187,13 +190,14 @@ export const Login: React.FC = () => {
                                 required
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full pl-10 pr-12 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md"
+                                className="w-full pl-10 pr-12 py-3.5 bg-black/40 border border-white/10 rounded-[14px] focus:ring-1 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none font-medium text-white placeholder-white/20 transition-all text-sm backdrop-blur-md pointer-events-auto"
                                 placeholder="••••••••"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-200/50 hover:text-emerald-400 transition-colors"
+                                onMouseDown={(e) => e.preventDefault()}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-200/50 hover:text-emerald-400 transition-colors z-10 pointer-events-auto touch-manipulation"
                             >
                                 {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>

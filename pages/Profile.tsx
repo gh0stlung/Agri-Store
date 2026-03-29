@@ -23,15 +23,15 @@ const Profile: React.FC = () => {
   const [user, setUser] = useState(authUser);
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    mobile: '',
     address: ''
   });
 
   useEffect(() => {
     const getUser = async () => {
+      if (!supabase) return;
       const { data } = await supabase.auth.getUser();
       const user = data?.user;
-      console.log("USER:", user);
       setUser(user);
       setLoading(false);
     };
@@ -41,6 +41,18 @@ const Profile: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (user && supabase) {
+        const localProfile = localStorage.getItem(`profile_${user.id}`);
+        if (localProfile) {
+          try {
+            const parsed = JSON.parse(localProfile);
+            setFormData({
+              name: parsed.name || '',
+              mobile: parsed.mobile || '',
+              address: parsed.address || ''
+            });
+          } catch(e) {}
+        }
+
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -48,11 +60,13 @@ const Profile: React.FC = () => {
           .single();
         
         if (data && !error) {
-          setFormData({
+          const newProfile = {
             name: data.name || '',
-            phone: data.phone || '',
+            mobile: data.mobile || '',
             address: data.address || ''
-          });
+          };
+          setFormData(newProfile);
+          localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
         }
       }
     };
@@ -64,25 +78,28 @@ const Profile: React.FC = () => {
     if (!user || !supabase) return;
     
     // Validation
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      showToast("Please fill in all required fields", "error");
+    if (!formData.name.trim() || !formData.mobile.trim()) {
+      showToast("Please fill in required fields (Name & Mobile)", "error");
       return;
     }
 
     setSaving(true);
     
+    const profileData = {
+      id: user.id,
+      name: formData.name.trim(),
+      mobile: formData.mobile.trim(),
+      address: formData.address.trim()
+    };
+
     const { error } = await supabase
       .from('profiles')
-      .update({
-        name: formData.name,
-        phone: formData.phone
-        // Removed address to fix "address column not found" error
-      })
-      .eq('id', user.id);
+      .upsert(profileData);
 
     if (error) {
       showToast("Error saving profile: " + error.message, "error");
     } else {
+      localStorage.setItem(`profile_${user.id}`, JSON.stringify(profileData));
       showToast("Profile updated successfully!", "success");
     }
     setSaving(false);
@@ -217,8 +234,21 @@ const Profile: React.FC = () => {
                       type="tel" 
                       className="w-full pl-9 pr-3 h-[40px] rounded-[12px] border border-[var(--border-color)] focus:ring-1 focus:ring-[var(--text-primary)]/20 focus:border-[var(--text-primary)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] transition-all text-xs"
                       placeholder="Enter mobile number"
-                      value={formData.phone}
-                      onChange={e => setFormData({...formData, phone: e.target.value})}
+                      value={formData.mobile}
+                      onChange={e => setFormData({...formData, mobile: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-0.5">
+                  <label className="text-[7px] font-bold text-gray-400 uppercase tracking-widest ml-1">Address</label>
+                  <div className="relative group">
+                    <input 
+                      type="text" 
+                      className="w-full px-3 h-[40px] rounded-[12px] border border-[var(--border-color)] focus:ring-1 focus:ring-[var(--text-primary)]/20 focus:border-[var(--text-primary)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] transition-all text-xs"
+                      placeholder="Enter your address"
+                      value={formData.address}
+                      onChange={e => setFormData({...formData, address: e.target.value})}
                     />
                   </div>
                 </div>
@@ -261,13 +291,11 @@ const Profile: React.FC = () => {
                   onClick={toggleTheme}
                   className={`w-10 h-5 rounded-full relative transition-all duration-300 flex items-center p-0.5 ${theme === 'dark' ? 'bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.5)]' : 'bg-gray-200'}`}
                 >
-                  <motion.div 
-                    layout
-                    className="w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm"
-                    transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                  <div 
+                    className={`w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm transition-transform duration-300 ease-in-out ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0'}`}
                   >
                     {theme === 'dark' ? <Moon size={10} className="text-indigo-600" /> : <Sun size={10} className="text-amber-500" />}
-                  </motion.div>
+                  </div>
                 </button>
               </div>
 
