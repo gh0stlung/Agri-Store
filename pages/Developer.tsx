@@ -6,7 +6,7 @@ import {
   AlertTriangle,
   ShieldCheck, ShieldAlert, DatabaseZap, Package,
   Activity, ArrowLeft, Users, Search, Filter, Trash2, 
-  Phone, MapPin, User, ChevronRight, History,
+  Phone, User, ChevronRight, History,
   LayoutDashboard, Trash, X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -511,10 +511,10 @@ export const Developer: React.FC = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="space-y-6 pb-20"
+              className="space-y-4 pb-20"
             >
               {/* Controls */}
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-black/40 p-4 rounded-2xl border border-teal-500/20">
+              <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-black/40 p-3 rounded-xl border border-teal-500/20">
                 <div className="relative flex-1 w-full">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500/50" size={18} />
                   <input 
@@ -522,14 +522,14 @@ export const Developer: React.FC = () => {
                     placeholder="Search Order ID or Phone..."
                     value={orderSearch}
                     onChange={(e) => setOrderSearch(e.target.value)}
-                    className="w-full bg-teal-950/20 border border-teal-500/20 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-teal-500/50 transition-all"
+                    className="w-full bg-teal-950/20 border border-teal-500/20 rounded-lg py-2.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-teal-500/50 transition-all"
                   />
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
                   <select 
                     value={orderFilter}
                     onChange={(e) => setOrderFilter(e.target.value)}
-                    className="flex-1 md:flex-none bg-teal-950/20 border border-teal-500/20 rounded-xl py-3 px-4 text-xs font-bold text-teal-400 focus:outline-none"
+                    className="flex-1 md:flex-none bg-teal-950/20 border border-teal-500/20 rounded-lg py-2.5 px-4 text-xs font-bold text-teal-400 focus:outline-none"
                   >
                     <option value="all">All Status</option>
                     <option value="Pending">Pending</option>
@@ -538,13 +538,13 @@ export const Developer: React.FC = () => {
                   </select>
                   <button 
                     onClick={() => setOrderSort(prev => prev === 'latest' ? 'oldest' : 'latest')}
-                    className="p-3 bg-teal-950/20 border border-teal-500/20 rounded-xl text-teal-400 hover:bg-teal-500/10 transition-all"
+                    className="p-2.5 bg-teal-950/20 border border-teal-500/20 rounded-lg text-teal-400 hover:bg-teal-500/10 transition-all"
                     title="Sort by Date"
                   >
                     <Filter size={18} />
                   </button>
                   <div className="relative group">
-                    <button className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 hover:bg-red-500/20 transition-all">
+                    <button className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 hover:bg-red-500/20 transition-all">
                       <Trash size={18} />
                     </button>
                     <div className="absolute right-0 top-full mt-2 w-48 bg-[#0a0f1a] border border-red-500/20 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2">
@@ -566,7 +566,7 @@ export const Developer: React.FC = () => {
               </div>
 
               {/* Orders List */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {orders
                   .filter(o => 
                     (orderFilter === 'all' || o.status === orderFilter) &&
@@ -576,95 +576,78 @@ export const Developer: React.FC = () => {
                     <motion.div 
                       layout
                       key={order.id}
-                      className="bg-black/40 backdrop-blur-md border border-teal-500/10 rounded-2xl p-6 hover:border-teal-500/30 transition-all group"
+                      className="bg-black/40 backdrop-blur-md border border-teal-500/10 rounded-xl p-4 hover:border-teal-500/30 transition-all group"
                     >
-                      <div className="flex flex-col md:flex-row justify-between gap-6">
-                        <div className="space-y-4 flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-teal-500/10 rounded-lg">
-                                <Package size={18} className="text-teal-500" />
-                              </div>
-                              <div>
-                                <h4 className="text-xs font-bold text-teal-600 uppercase tracking-widest">Order ID</h4>
-                                <p className="text-sm font-black text-white">#{order.id.slice(0, 8)}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                                order.status === 'Delivered' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                order.status === 'Confirmed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              }`}>
-                                {order.status || 'Pending'}
-                              </div>
-                              <select 
-                                value={order.status || 'Pending'}
-                                onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                                className="bg-teal-950/40 border border-teal-500/20 rounded-lg py-1 px-2 text-[10px] font-bold text-teal-400 focus:outline-none hover:border-teal-500/50 transition-all cursor-pointer"
-                              >
-                                <option value="Pending">Pending</option>
-                                <option value="Confirmed">Confirmed</option>
-                                <option value="Delivered">Delivered</option>
-                                <option value="Cancelled">Cancelled</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-teal-600">
-                                <User size={14} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Customer</span>
-                              </div>
-                              <p className="text-sm font-bold text-slate-200">{order.customer_name || 'Guest'}</p>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-teal-600">
-                                <Phone size={14} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Contact</span>
-                              </div>
-                              <p className="text-sm font-bold text-slate-200">{order.phone || 'N/A'}</p>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-teal-600">
-                                <MapPin size={14} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Address</span>
-                              </div>
-                              <p className="text-sm font-bold text-slate-200 truncate max-w-[200px]">{order.address || 'N/A'}</p>
-                            </div>
-                          </div>
-
-                          <div className="pt-4 border-t border-teal-500/5">
-                            <div className="flex items-center gap-2 text-teal-600 mb-2">
-                              <ShoppingCart size={14} />
-                              <span className="text-[10px] font-bold uppercase tracking-widest">Items ({order.items?.length || 0})</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {order.items?.map((item, i) => (
-                                <span key={i} className="px-2 py-1 bg-teal-950/30 rounded-lg text-[10px] text-teal-300 border border-teal-500/10">
-                                  {item.name} x{item.quantity}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+                      {/* Row 1: Order ID + Status */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Package size={14} className="text-teal-500" />
+                          <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">ID:</span>
+                          <span className="text-xs font-black text-white">#{order.id.slice(0, 8)}</span>
                         </div>
-
-                        <div className="flex flex-row md:flex-col justify-between items-end gap-4 min-w-[120px]">
-                          <div className="text-right">
-                            <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest block mb-1">Total Amount</span>
-                            <p className="text-2xl font-black text-white">₹{order.total}</p>
+                        <div className="flex items-center gap-2">
+                          <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
+                            order.status === 'Delivered' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                            order.status === 'Confirmed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          }`}>
+                            {order.status || 'Pending'}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </span>
-                            <button 
-                              onClick={() => setDeleteConfirm({ type: 'order', id: order.id, title: 'Delete this order?' })}
-                              className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                          <select 
+                            value={order.status || 'Pending'}
+                            onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                            className="bg-teal-950/40 border border-teal-500/20 rounded-lg py-0.5 px-1.5 text-[9px] font-bold text-teal-400 focus:outline-none hover:border-teal-500/50 transition-all cursor-pointer"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Row 2: Customer name + phone (inline) */}
+                      <div className="flex items-center gap-3 mb-2 text-[11px]">
+                        <div className="flex items-center gap-1.5 text-slate-300">
+                          <User size={12} className="text-teal-600" />
+                          <span className="font-bold">{order.customer_name || 'Guest'}</span>
+                        </div>
+                        <div className="w-1 h-1 bg-teal-500/30 rounded-full"></div>
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Phone size={12} className="text-teal-600" />
+                          <span>{order.phone || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      {/* Row 3: Total amount (bold) + date (right) */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-teal-600 uppercase tracking-widest">Total:</span>
+                          <span className="text-sm font-black text-white">₹{order.total}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </span>
+                          <button 
+                            onClick={() => setDeleteConfirm({ type: 'order', id: order.id, title: 'Delete this order?' })}
+                            className="p-1.5 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Row 4: Items (small text, single line) */}
+                      <div className="pt-2 border-t border-teal-500/5">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <ShoppingCart size={10} className="text-teal-600 shrink-0" />
+                          <div className="flex gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
+                            {order.items?.map((item, i) => (
+                              <span key={i} className="text-[9px] text-teal-400/70 font-medium">
+                                {item.name} (x{item.quantity}){i < (order.items?.length || 0) - 1 ? ',' : ''}
+                              </span>
+                            ))}
                           </div>
                         </div>
                       </div>
