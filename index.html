@@ -24,7 +24,9 @@
       }
     </script>
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#FFFCF0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- Fonts: Merriweather + Plus Jakarta Sans -->
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -141,5 +143,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      // Ensure PWA starts at home page on launch
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        if (window.location.pathname !== '/' && !sessionStorage.getItem('pwa_launched')) {
+          sessionStorage.setItem('pwa_launched', 'true');
+          window.location.href = '/';
+        }
+      }
+    </script>
   </body>
 </html>
