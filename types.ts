@@ -31,6 +31,15 @@ export interface StoreUpdate {
   created_at: string;
 }
 
+export interface Profile {
+  id: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  created_at?: string;
+}
+
 export interface DeliveryStaff {
   id: string;
   name: string;

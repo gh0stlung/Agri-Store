@@ -1,16 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useNavigation } from '../context/NavigationContext';
-import { Product, Order, StoreUpdate } from '../types';
+import { Product, Order, StoreUpdate, Profile } from '../types';
 import { 
   Plus, Trash2, Edit2, Save, X, 
-  Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon, Sparkles, Wand2,
+  Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon,
   Search, Calendar, MapPin, Phone, Clock, AlertTriangle, Loader2,
   Inbox, User, ArrowLeft
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 import Cropper from 'react-easy-crop';
-
 import { AppLayout } from '../components/AppLayout';
 import { useToast } from '../context/ToastContext';
 
@@ -77,15 +75,17 @@ async function getCroppedImg(
 export const Admin: React.FC = () => {
   const { push } = useNavigation();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'updates'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'updates' | 'users'>('products');
   
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [updates, setUpdates] = useState<StoreUpdate[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingUpdates, setLoadingUpdates] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
   
   // Forms & Edit State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -103,7 +103,6 @@ export const Admin: React.FC = () => {
   const [productForm, setProductForm] = useState<Partial<Product>>({ 
     name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true 
   });
-  const [isAutofilling, setIsAutofilling] = useState(false);
   
   // Update Form
   const [text, setText] = useState('');
@@ -134,6 +133,27 @@ export const Admin: React.FC = () => {
       document.body.style.overflow = 'unset';
     };
   }, [isFormOpen]);
+
+  useEffect(() => {
+    if (isFormOpen) {
+      window.history.pushState({ modal: 'product-form' }, '');
+      const handlePopState = () => {
+        setIsFormOpen(false);
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isFormOpen]);
+
+  const closeForm = () => {
+    if (window.history.state?.modal === 'product-form') {
+      window.history.back();
+    } else {
+      setIsFormOpen(false);
+    }
+  };
 
   const init = async () => {
     await fetchData();
@@ -178,8 +198,21 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const loadProfiles = async () => {
+    try {
+      if (!supabase) return;
+      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingProfiles(false);
+    }
+  };
+
   const fetchData = async () => {
-    await Promise.all([loadProducts(), loadOrders(), loadUpdates()]);
+    await Promise.all([loadProducts(), loadOrders(), loadUpdates(), loadProfiles()]);
   };
 
   // --- HANDLERS ---
@@ -208,50 +241,6 @@ export const Admin: React.FC = () => {
       console.error(e);
       showToast("Error cropping image", "error");
     }
-  };
-
-  // Optional AI Feature: Autofill details from Name
-  const handleAIAutofill = async () => {
-      if (!productForm.name) {
-          alert("Enter a product name first!");
-          return;
-      }
-      setIsAutofilling(true);
-      
-      try {
-          // Use a safer way to access environment variables in Vite
-          const apiKey = (import.meta as any).env?.VITE_API_KEY || (typeof process !== 'undefined' ? (process.env as any).API_KEY : undefined);
-          if (!apiKey) throw new Error("No API Key configured. Please set VITE_API_KEY.");
-          
-          const ai = new GoogleGenAI({ apiKey });
-          const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Given the agricultural product name "${productForm.name}", suggest a JSON with: 
-            category (one of: Seeds, Fertilizer, Pesticides, Tools, Offers), 
-            price (estimated numeric value in INR, default 500 if unknown),
-            unit (one of: kg, gram, bag, liter, ml, piece, packet)
-            
-            Example output: {"category": "Fertilizer", "price": 1200, "unit": "bag"}
-            Only return JSON.`
-          });
-          
-          const text = response.text || "";
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-              const data = JSON.parse(jsonMatch[0]);
-              setProductForm(prev => ({
-                  ...prev,
-                  category: data.category || prev.category,
-                  price: data.price || prev.price,
-                  unit: data.unit || prev.unit
-              }));
-          }
-      } catch (e) {
-          console.error("Autofill error", e);
-          alert("AI Autofill failed. Please enter manually.");
-      } finally {
-          setIsAutofilling(false);
-      }
   };
 
   const saveProduct = async (e: React.FormEvent) => {
@@ -312,7 +301,7 @@ export const Admin: React.FC = () => {
         
         resetForms();
         fetchData();
-        setIsFormOpen(false);
+        closeForm();
     } catch (e: any) {
         console.error(e);
         showToast(e.message || "Something went wrong", "error");
@@ -478,7 +467,7 @@ export const Admin: React.FC = () => {
         
         {/* Delete Confirmation Modal */}
         {deleteConfirmId && (
-            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
                 <div className="bg-[var(--card-bg)] rounded-[24px] p-6 shadow-2xl relative z-10 w-full max-w-sm border border-[var(--border-color)] animate-scale-in transition-colors duration-200">
                     <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4 mx-auto">
@@ -515,11 +504,12 @@ export const Admin: React.FC = () => {
             {[
                 { id: 'products', icon: Package, label: 'Products' },
                 { id: 'orders', icon: ShoppingBag, label: 'Orders' },
-                { id: 'updates', icon: Bell, label: 'Updates' }
+                { id: 'updates', icon: Bell, label: 'Updates' },
+                { id: 'users', icon: User, label: 'Users' }
             ].map((tab) => (
                 <button
                     key={tab.id}
-                    onClick={() => { setActiveTab(tab.id as any); resetForms(); setIsFormOpen(false); }}
+                    onClick={() => { setActiveTab(tab.id as any); resetForms(); closeForm(); }}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] text-xs font-bold transition-all duration-200 ${
                         activeTab === tab.id 
                         ? 'bg-[var(--primary-btn)] text-white shadow-md' 
@@ -556,15 +546,20 @@ export const Admin: React.FC = () => {
                 </div>
 
                 {isFormOpen && (
-                    <div className="fixed inset-0 z-[100] bg-[var(--bg-main)] flex flex-col animate-slide-up">
-                        <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto relative">
-                            <div className="bg-[var(--bg-main)] px-4 py-4 border-b border-[var(--border-color)] flex items-center gap-3 sticky top-0 z-20 shrink-0 transition-colors duration-200">
-                                <button onClick={() => setIsFormOpen(false)} className="p-2 -ml-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-[var(--text-primary)]">
-                                    <ArrowLeft size={24} />
+                    <div className="fixed inset-0 z-[9999] bg-[var(--bg-main)] flex flex-col animate-slide-up overflow-hidden">
+                        <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto relative bg-[var(--bg-main)]">
+                            <div className="bg-[var(--bg-main)] px-4 py-4 border-b border-[var(--border-color)] flex items-center justify-between sticky top-0 z-20 shrink-0 transition-colors duration-200">
+                                <div className="flex items-center gap-3">
+                                    <button onClick={closeForm} className="p-2 -ml-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-[var(--text-primary)]">
+                                        <ArrowLeft size={24} />
+                                    </button>
+                                    <h3 className="font-bold text-[var(--text-primary)] text-lg">
+                                        {editingId ? 'Edit Product' : 'Add Product'}
+                                    </h3>
+                                </div>
+                                <button onClick={closeForm} className="p-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-gray-500">
+                                    <X size={24} />
                                 </button>
-                                <h3 className="font-bold text-[var(--text-primary)] text-lg flex items-center gap-2">
-                                    {editingId ? 'Edit Product' : 'Add Product'}
-                                </h3>
                             </div>
                             
                             {/* Polished Modal Content with Tighter Spacing */}
@@ -593,19 +588,7 @@ export const Admin: React.FC = () => {
 
                                     <div className="md:col-span-2">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Product Name</label>
-                                        <div className="flex gap-2">
-                                            <input type="text" required className="w-full py-2.5 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} placeholder="e.g. Urea Fertilizer" />
-                                            <button 
-                                                type="button" 
-                                                onClick={handleAIAutofill} 
-                                                disabled={isAutofilling}
-                                                className="bg-indigo-600 text-white px-3 rounded-[12px] hover:bg-indigo-500 transition-colors flex items-center gap-2 text-xs font-bold shadow-sm"
-                                                title="Auto-fill details using AI"
-                                            >
-                                                {isAutofilling ? <Sparkles size={14} className="animate-spin" /> : <Wand2 size={14} />} 
-                                                <span className="hidden sm:inline">Auto-fill</span>
-                                            </button>
-                                        </div>
+                                        <input type="text" required className="w-full py-2.5 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} placeholder="e.g. Urea Fertilizer" />
                                     </div>
                                     
                                     <div>
@@ -664,7 +647,7 @@ export const Admin: React.FC = () => {
                 )}
 
                 {cropImageSrc && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setCropImageSrc(null)} />
                         <div className="bg-[var(--card-bg)] rounded-[24px] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col border border-[var(--border-color)]">
                             <div className="bg-[var(--bg-main)] px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center sticky top-0 z-20 shrink-0">
@@ -898,6 +881,92 @@ export const Admin: React.FC = () => {
                                     <button onClick={() => deleteUpdate(u.id)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100">
                                         <Trash2 size={16}/>
                                     </button>
+                                </div>
+                            ))
+                        )
+                    )}
+                </div>
+            </div>
+        )}
+        {/* --- USERS TAB --- */}
+        {activeTab === 'users' && (
+            <div className="space-y-4 animate-fade-in">
+                <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input 
+                            type="text" 
+                            placeholder="Search users by name or email..." 
+                            className="w-full pl-10 pr-4 py-3 rounded-[12px] border border-[var(--border-color)] bg-[var(--card-bg)] focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm font-medium text-[var(--text-body)] placeholder-gray-400 transition-colors duration-200"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {loadingProfiles ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="bg-[var(--card-bg)] p-5 rounded-[24px] border border-[var(--border-color)] animate-pulse">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-12 h-12 bg-[var(--bg-main)] rounded-full"></div>
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-4 bg-[var(--bg-main)] rounded w-1/2"></div>
+                                        <div className="h-3 bg-[var(--bg-main)] rounded w-1/3"></div>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="h-3 bg-[var(--bg-main)] rounded w-full"></div>
+                                    <div className="h-3 bg-[var(--bg-main)] rounded w-full"></div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        profiles.filter(p => 
+                            p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            p.phone?.includes(searchTerm)
+                        ).length === 0 ? (
+                            <div className="col-span-full p-12 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)] flex flex-col items-center gap-4">
+                                <div className="w-16 h-16 bg-[var(--bg-main)]/50 rounded-full flex items-center justify-center text-gray-400">
+                                    <User size={32} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-[var(--text-primary)]">No users found</h3>
+                                    <p className="text-gray-500 text-sm">Try a different search term.</p>
+                                </div>
+                            </div>
+                        ) : (
+                            profiles.filter(p => 
+                                p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                p.phone?.includes(searchTerm)
+                            ).map((p) => (
+                                <div key={p.id} className="bg-[var(--card-bg)] p-5 rounded-[24px] border border-[var(--border-color)] shadow-sm hover:shadow-md transition-all duration-200 group">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-lg">
+                                            {p.full_name?.charAt(0) || p.email?.charAt(0) || '?'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-[var(--text-primary)] truncate">{p.full_name || 'Anonymous User'}</h4>
+                                            <p className="text-xs text-gray-500 truncate">{p.email}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-xs text-[var(--text-body)]">
+                                            <Phone size={14} className="text-gray-400" />
+                                            <span>{p.phone || 'No phone provided'}</span>
+                                        </div>
+                                        <div className="flex items-start gap-2 text-xs text-[var(--text-body)]">
+                                            <MapPin size={14} className="text-gray-400 mt-0.5" />
+                                            <span className="line-clamp-2">{p.address || 'No address provided'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold pt-2 border-t border-[var(--border-color)]">
+                                            <Calendar size={12} />
+                                            <span>Joined: {p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Unknown'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             ))
                         )

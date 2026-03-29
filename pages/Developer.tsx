@@ -16,10 +16,11 @@ import { Order } from '../types';
 
 interface Profile {
   id: string;
-  full_name: string;
+  user_id: string;
+  name: string;
   email: string;
-  phone: string;
   created_at: string;
+  phone?: string;
 }
 
 interface ActivityLog {
@@ -122,13 +123,30 @@ export const Developer: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     if (!isAdmin || !supabase) return;
     try {
-      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setUsers(data || []);
+      // Attempt to fetch with created_at, but handle failure if column missing
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, user_id, name, email");
+
+      if (error) {
+        console.log("Fetch error:", error);
+        setLastError(error.message || "Database unreachable");
+        setUsers([]);
+        return;
+      }
+
+      const safeData = (data || []).map(u => ({
+        ...u,
+        name: u.name || 'Anonymous',
+        email: u.email || 'N/A',
+        created_at: "N/A" // Fallback as requested if column doesn't exist
+      }));
+
+      setUsers(safeData);
     } catch (err: any) {
-      setLastError(err.message);
-    } finally {
-      // Done
+      console.log("Fetch error:", err);
+      setLastError(err.message || "Database unreachable");
+      setUsers([]);
     }
   }, [isAdmin]);
 
@@ -138,7 +156,7 @@ export const Developer: React.FC = () => {
       // Derive activity from orders and profiles
       const [ordersRes, profilesRes] = await Promise.all([
         supabase.from('orders').select('id, created_at, customer_name').order('created_at', { ascending: false }).limit(10),
-        supabase.from('profiles').select('id, created_at, full_name').order('created_at', { ascending: false }).limit(10)
+        supabase.from('profiles').select('id, name').limit(10)
       ]);
 
       const activities: ActivityLog[] = [];
@@ -157,9 +175,9 @@ export const Developer: React.FC = () => {
         activities.push({
           id: `profile-${p.id}`,
           type: 'profile',
-          message: `New user registered: ${p.full_name || 'Anonymous'}`,
-          timestamp: p.created_at,
-          user: p.full_name
+          message: `New user registered: ${p.name || 'Anonymous'}`,
+          timestamp: new Date().toISOString(),
+          user: p.name
         });
       });
 
@@ -174,45 +192,47 @@ export const Developer: React.FC = () => {
   const performCheck = useCallback(async () => {
     setLastError(null);
     try {
-      if (!supabase) throw new Error('Supabase not initialized');
-      // 1. Database Health Check (Counts)
-      const [pRes, oRes, uRes, prRes] = await Promise.all([
-        supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('*', { count: 'exact', head: true }),
-        supabase.from('updates').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true })
-      ]);
-
-      if (pRes.error || oRes.error || uRes.error || prRes.error) {
-        const err = pRes.error || oRes.error || uRes.error || prRes.error;
-        throw err;
+      if (!supabase) {
+        throw new Error('Supabase client failed to initialize. Check your environment variables.');
       }
 
+      // 1. Database Health Check (Simple query as requested)
+      const { count, error: dbError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+
+      if (dbError) {
+        throw new Error(dbError.message || 'Database unreachable');
+      }
+
+      setCounts(prev => ({ ...prev, products: count || 0 }));
+      setDbStatus({ status: 'OK', message: 'All systems operational' });
+
+      // 2. Fetch other counts for the dashboard
+      const [oRes, uRes, prRes] = await Promise.all([
+        supabase.from('orders').select('id', { count: 'exact', head: true }),
+        supabase.from('updates').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true })
+      ]);
+
       setCounts({
-        products: pRes.count || 0,
+        products: count || 0,
         orders: oRes.count || 0,
         updates: uRes.count || 0,
         users: prRes.count || 0
       });
 
-      // 2. API Response Check (Fetch minimal data)
-      const [pApi, oApi] = await Promise.all([
-        supabase.from('products').select('id').limit(1),
-        supabase.from('orders').select('id').limit(1)
-      ]);
-
+      // 3. API Response Check
       setApiCheck({
-        products: !pApi.error,
-        orders: !oApi.error
+        products: true,
+        orders: !oRes.error
       });
 
-      setDbStatus({ status: 'OK', message: 'All systems operational' });
     } catch (err: any) {
       console.error('System check failed:', err);
-      setLastError(err.message || 'Unknown connection error');
-      setDbStatus({ status: 'ERROR', message: err.message || 'Database connection failed' });
-    } finally {
-      // Done
+      const errorMessage = err.message || 'Database unreachable';
+      setLastError(errorMessage);
+      setDbStatus({ status: 'ERROR', message: errorMessage });
     }
   }, []);
 
@@ -687,8 +707,8 @@ export const Developer: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {users
                   .filter(u => 
-                    u.full_name?.toLowerCase().includes(userSearch.toLowerCase()) || 
-                    u.email?.toLowerCase().includes(userSearch.toLowerCase())
+                    (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) || 
+                    (u.email || '').toLowerCase().includes(userSearch.toLowerCase())
                   )
                   .map(profile => (
                     <motion.div 
@@ -697,7 +717,7 @@ export const Developer: React.FC = () => {
                     >
                       <div className="absolute top-0 right-0 p-4">
                         <button 
-                          onClick={() => setDeleteConfirm({ type: 'user', id: profile.id, title: `Delete user ${profile.full_name}?` })}
+                          onClick={() => setDeleteConfirm({ type: 'user', id: profile.id, title: `Delete user ${profile.name}?` })}
                           className="p-2 text-red-400/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                         >
                           <Trash2 size={16} />
@@ -709,7 +729,7 @@ export const Developer: React.FC = () => {
                           <User size={24} className="text-teal-500" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-black text-white">{profile.full_name || 'Anonymous'}</h4>
+                          <h4 className="text-sm font-black text-white">{profile.name || 'Anonymous'}</h4>
                           <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">Registered User</p>
                         </div>
                       </div>
@@ -719,13 +739,9 @@ export const Developer: React.FC = () => {
                           <span className="text-slate-500 uppercase tracking-widest font-bold">Email</span>
                           <span className="text-slate-300 truncate max-w-[150px]">{profile.email || 'N/A'}</span>
                         </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500 uppercase tracking-widest font-bold">Phone</span>
-                          <span className="text-slate-300">{profile.phone || 'N/A'}</span>
-                        </div>
                         <div className="flex items-center justify-between text-xs pt-3 border-t border-teal-500/5">
                           <span className="text-slate-500 uppercase tracking-widest font-bold">Joined</span>
-                          <span className="text-teal-500/70">{new Date(profile.created_at).toLocaleDateString()}</span>
+                          <span className="text-teal-500/70">{profile.created_at !== 'N/A' ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</span>
                         </div>
                         <button 
                           onClick={() => setSelectedUser(profile)}
@@ -827,7 +843,7 @@ export const Developer: React.FC = () => {
                     <User size={32} className="text-teal-500" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-white tracking-tight">{selectedUser.full_name || 'Anonymous'}</h3>
+                    <h3 className="text-2xl font-black text-white tracking-tight">{selectedUser.name || 'Anonymous'}</h3>
                     <p className="text-xs font-bold text-teal-600 uppercase tracking-[0.2em]">User Profile Details</p>
                   </div>
                 </div>
@@ -854,7 +870,7 @@ export const Developer: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Member Since</label>
-                  <p className="text-sm font-bold text-white">{new Date(selectedUser.created_at).toLocaleString()}</p>
+                  <p className="text-sm font-bold text-white">{selectedUser.created_at !== 'N/A' ? new Date(selectedUser.created_at).toLocaleString() : 'N/A'}</p>
                 </div>
               </div>
 
