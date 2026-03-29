@@ -112,7 +112,7 @@ export const Order: React.FC = () => {
         return;
       }
 
-      if (orderData) setConfirmedOrderId(orderData.id.slice(0, 8));
+      if (orderData) setConfirmedOrderId(orderData.id);
 
       alert("✅ Order saved in database");
       setOrderComplete(true);
@@ -142,7 +142,7 @@ export const Order: React.FC = () => {
             <p className="text-[var(--text-body)] mb-6 font-medium text-sm opacity-80">Thank you, {formData.name}.<br/>Your order has been successfully placed.</p>
             
             <div className="bg-emerald-500/10 rounded-xl p-4 mb-6 border border-emerald-500/20">
-                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Order ID: {confirmedOrderId}</p>
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Order ID: {confirmedOrderId.slice(0, 8).toUpperCase()}</p>
                 <p className="text-[10px] text-[var(--text-body)] opacity-70 leading-relaxed">
                     You can track your order status anytime using your mobile number <strong>{formData.mobile}</strong>.
                 </p>

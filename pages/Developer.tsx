@@ -255,7 +255,7 @@ export const Developer: React.FC = () => {
       const log: ActivityLog = {
         id: `update-${Date.now()}`,
         type: 'system',
-        message: `Order #${id.slice(0, 8)} status updated to ${newStatus}`,
+        message: `Order #${id.slice(0, 8).toUpperCase()} status updated to ${newStatus}`,
         timestamp: new Date().toISOString(),
         user: 'Admin'
       };
@@ -576,15 +576,11 @@ export const Developer: React.FC = () => {
                     <motion.div 
                       layout
                       key={order.id}
-                      className="bg-black/40 backdrop-blur-md border border-teal-500/10 rounded-xl p-4 hover:border-teal-500/30 transition-all group"
+                      className="bg-black/40 backdrop-blur-md border border-teal-500/10 rounded-xl p-3 hover:border-teal-500/30 transition-all group"
                     >
                       {/* Row 1: Order ID + Status */}
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Package size={14} className="text-teal-500" />
-                          <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">ID:</span>
-                          <span className="text-xs font-black text-white">#{order.id.slice(0, 8)}</span>
-                        </div>
+                        <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">#{order.id.slice(0, 8).toUpperCase()}</span>
                         <div className="flex items-center gap-2">
                           <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                             order.status === 'Delivered' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
@@ -606,27 +602,23 @@ export const Developer: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Row 2: Customer name + phone (inline) */}
-                      <div className="flex items-center gap-3 mb-2 text-[11px]">
-                        <div className="flex items-center gap-1.5 text-slate-300">
-                          <User size={12} className="text-teal-600" />
-                          <span className="font-bold">{order.customer_name || 'Guest'}</span>
+                      {/* Row 2: Customer name + phone */}
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <User size={14} className="text-teal-500/50" />
+                          <span className="text-sm font-bold text-teal-400">{order.customer_name || 'Guest'}</span>
                         </div>
-                        <div className="w-1 h-1 bg-teal-500/30 rounded-full"></div>
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <Phone size={12} className="text-teal-600" />
-                          <span>{order.phone || 'N/A'}</span>
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <Phone size={10} />
+                          <span className="text-[10px]">{order.phone || 'N/A'}</span>
                         </div>
                       </div>
 
-                      {/* Row 3: Total amount (bold) + date (right) */}
+                      {/* Row 3: Total amount + date */}
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-bold text-teal-600 uppercase tracking-widest">Total:</span>
-                          <span className="text-sm font-black text-white">₹{order.total}</span>
-                        </div>
+                        <span className="text-base font-black text-green-400">₹{order.total}</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          <span className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">
                             {new Date(order.created_at).toLocaleDateString()}
                           </span>
                           <button 
@@ -641,10 +633,10 @@ export const Developer: React.FC = () => {
                       {/* Row 4: Items (small text, single line) */}
                       <div className="pt-2 border-t border-teal-500/5">
                         <div className="flex items-center gap-2 overflow-hidden">
-                          <ShoppingCart size={10} className="text-teal-600 shrink-0" />
+                          <ShoppingCart size={10} className="text-slate-500 shrink-0" />
                           <div className="flex gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
                             {order.items?.map((item, i) => (
-                              <span key={i} className="text-[9px] text-teal-400/70 font-medium">
+                              <span key={i} className="text-[9px] text-slate-400 font-medium">
                                 {item.name} (x{item.quantity}){i < (order.items?.length || 0) - 1 ? ',' : ''}
                               </span>
                             ))}
