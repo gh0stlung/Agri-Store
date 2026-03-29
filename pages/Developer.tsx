@@ -121,15 +121,14 @@ export const Developer: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     if (!isAdmin || !supabase) return;
     try {
-      // Attempt to fetch with created_at, but handle failure if column missing
       const { data, error } = await supabase
         .from("profiles")
         .select("id, name, mobile, address");
 
       if (error) {
-        console.log("Fetch error:", error);
+        console.error("Fetch error:", error);
         setLastError(error.message || "Database unreachable");
-        setUsers([]);
+        // Do not setUsers([]) here if we want to keep previous data or just handle it silently
         return;
       }
 
@@ -142,9 +141,8 @@ export const Developer: React.FC = () => {
 
       setUsers(safeData);
     } catch (err: any) {
-      console.log("Fetch error:", err);
+      console.error("Fetch error:", err);
       setLastError(err.message || "Database unreachable");
-      setUsers([]);
     }
   }, [isAdmin]);
 
@@ -862,9 +860,9 @@ export const Developer: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Address</label>
                   <p className="text-sm font-bold text-white">{selectedUser.address || 'Not provided'}</p>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 sm:col-span-2">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Account ID</label>
-                  <p className="text-[10px] font-mono text-teal-500/70">{selectedUser.id}</p>
+                  <p className="text-[10px] font-mono text-teal-500/70 break-all">{selectedUser.id}</p>
                 </div>
               </div>
 

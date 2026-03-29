@@ -543,7 +543,7 @@ export const Admin: React.FC = () => {
                 {isFormOpen && (
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeForm} />
-                        <div className="bg-[var(--bg-main)] w-full max-w-lg max-h-[80vh] rounded-[24px] shadow-2xl relative z-10 flex flex-col animate-slide-up overflow-hidden border border-[var(--border-color)]">
+                        <div className="bg-[var(--bg-main)] w-full max-w-lg max-h-[75vh] rounded-[24px] shadow-2xl relative z-10 flex flex-col animate-slide-up overflow-hidden border border-[var(--border-color)]">
                             <div className="bg-[var(--bg-main)] px-4 py-3 border-b border-[var(--border-color)] flex items-center justify-between sticky top-0 z-20 shrink-0 transition-colors duration-200">
                                 <div className="flex items-center gap-3">
                                     <button onClick={closeForm} className="p-2 -ml-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-[var(--text-primary)]">
@@ -748,12 +748,12 @@ export const Admin: React.FC = () => {
                         Array.from({ length: 3 }).map((_, i) => <OrderSkeleton key={i} />)
                      ) : (
                         orders.map(order => (
-                            <div key={order.id} className="bg-[var(--card-bg)] rounded-[16px] p-3 shadow-sm border border-[var(--border-color)] transition-all hover:border-emerald-500/20">
+                            <div key={order.id} className="bg-[var(--card-bg)] rounded-[16px] p-2.5 shadow-sm border border-[var(--border-color)] transition-all hover:border-emerald-500/20">
                                 {/* Row 1: Order ID + Status */}
-                                <div className="flex justify-between items-center mb-2">
+                                <div className="flex justify-between items-center mb-1.5">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">#{order.id.slice(0, 8).toUpperCase()}</span>
-                                        <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">#{order.id.slice(0, 8).toUpperCase()}</span>
+                                        <div className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${
                                             STATUS_OPTIONS.find(opt => opt.value === order.status)?.color || 'bg-gray-100 text-gray-600'
                                         }`}>
                                             {order.status}
@@ -763,49 +763,47 @@ export const Admin: React.FC = () => {
                                         <select 
                                             value={order.status || 'pending'}
                                             onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                            className="bg-transparent text-[10px] font-bold text-[var(--text-primary)] outline-none cursor-pointer pr-4 appearance-none"
+                                            className="bg-transparent text-[9px] font-bold text-[var(--text-primary)] outline-none cursor-pointer pr-3 appearance-none"
                                         >
                                             {STATUS_OPTIONS.map(opt => (
                                                 <option key={opt.value} value={opt.value} className="bg-[var(--card-bg)]">{opt.label}</option>
                                             ))}
                                         </select>
-                                        <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        <ChevronDown size={8} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
                                 </div>
 
                                 {/* Row 2: Customer name + phone */}
-                                <div className="flex justify-between items-center mb-2 text-xs">
-                                    <div className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
-                                        <User size={12} className="text-gray-400" />
+                                <div className="flex justify-between items-center mb-1.5 text-[11px]">
+                                    <div className="flex items-center gap-1 font-bold text-[var(--text-primary)]">
+                                        <User size={10} className="text-gray-400" />
                                         <span>{order.customer_name}</span>
                                     </div>
-                                    <a href={`tel:${order.phone}`} className="flex items-center gap-1.5 text-blue-500 font-medium">
-                                        <Phone size={12} />
+                                    <a href={`tel:${order.phone}`} className="flex items-center gap-1 text-blue-500 font-medium">
+                                        <Phone size={10} />
                                         <span>{order.phone}</span>
                                     </a>
                                 </div>
 
                                 {/* Row 3: Total amount + Date */}
-                                <div className="flex justify-between items-end pt-2 border-t border-[var(--border-color)] border-dashed">
-                                    <div className="flex flex-col">
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">Total Amount</span>
-                                        <span className="font-black text-emerald-600 dark:text-emerald-400">₹{order.total}</span>
+                                <div className="flex justify-between items-center pt-1.5 border-t border-[var(--border-color)] border-dashed">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Total:</span>
+                                        <span className="font-black text-emerald-600 dark:text-emerald-400 text-xs">₹{order.total}</span>
                                     </div>
-                                    <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium">
-                                        <Calendar size={10} />
+                                    <div className="flex items-center gap-1 text-[9px] text-gray-400 font-medium">
+                                        <Calendar size={9} />
                                         <span>{new Date(order.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                                 
-                                {/* Collapsible Items (Optional, but good for detail) */}
-                                <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">Items</p>
-                                    <div className="space-y-1">
+                                {/* Row 4: Items (small text) */}
+                                <div className="mt-1.5 pt-1.5 border-t border-[var(--border-color)]">
+                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                         {(Array.isArray(order.items) ? order.items : []).map((item: any, idx: number) => (
-                                            <div key={idx} className="flex justify-between text-[10px] text-[var(--text-body)]">
-                                                <span>{item.quantity}x {item.name}</span>
-                                                <span className="font-bold">₹{item.price * item.quantity}</span>
-                                            </div>
+                                            <span key={idx} className="text-[8px] text-gray-500 font-medium">
+                                                {item.quantity}x {item.name}
+                                            </span>
                                         ))}
                                     </div>
                                 </div>
