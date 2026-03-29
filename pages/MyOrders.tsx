@@ -60,8 +60,8 @@ export const MyOrders: React.FC = () => {
             <div key={order.id} className="bg-[var(--card-bg)] rounded-[20px] border border-[var(--border-color)] shadow-[var(--shadow-soft)] overflow-hidden">
               <div className="p-4 border-b border-[var(--border-color)] bg-[var(--input-bg)] flex justify-between items-center">
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Order ID</p>
-                  <p className="font-mono text-sm font-bold text-[var(--text-primary)]">{order.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Order ID</p>
+                  <p className="font-mono text-base font-black text-[var(--text-primary)]">{order.id.slice(0, 8).toUpperCase()}</p>
                 </div>
                 <div className="text-right">
                   <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${

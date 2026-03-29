@@ -6,7 +6,7 @@ import {
   Plus, Trash2, Edit2, Save, X, 
   Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon, Sparkles, Wand2,
   Search, Calendar, MapPin, Phone, Clock, AlertTriangle, Loader2,
-  Inbox
+  Inbox, User, ArrowLeft
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import Cropper from 'react-easy-crop';
@@ -123,6 +123,17 @@ export const Admin: React.FC = () => {
   useEffect(() => {
     init();
   }, []);
+
+  useEffect(() => {
+    if (isFormOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFormOpen]);
 
   const init = async () => {
     await fetchData();
@@ -545,20 +556,20 @@ export const Admin: React.FC = () => {
                 </div>
 
                 {isFormOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsFormOpen(false)} />
-                        <div className="bg-[var(--card-bg)] rounded-[24px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-slide-up max-h-[90vh] flex flex-col border border-[var(--border-color)] transition-colors duration-200">
-                            <div className="bg-[var(--bg-main)] px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center sticky top-0 z-20 shrink-0 transition-colors duration-200">
-                                <h3 className="font-bold text-[var(--text-primary)] text-lg flex items-center gap-2 font-serif">
-                                    {editingId ? <Edit2 size={18} className="text-blue-500"/> : <Plus size={18} className="text-emerald-600"/>}
-                                    {editingId ? 'Edit Product' : 'Add New Item'}
+                    <div className="fixed inset-0 z-[100] bg-[var(--bg-main)] flex flex-col animate-slide-up">
+                        <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto relative">
+                            <div className="bg-[var(--bg-main)] px-4 py-4 border-b border-[var(--border-color)] flex items-center gap-3 sticky top-0 z-20 shrink-0 transition-colors duration-200">
+                                <button onClick={() => setIsFormOpen(false)} className="p-2 -ml-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-[var(--text-primary)]">
+                                    <ArrowLeft size={24} />
+                                </button>
+                                <h3 className="font-bold text-[var(--text-primary)] text-lg flex items-center gap-2">
+                                    {editingId ? 'Edit Product' : 'Add Product'}
                                 </h3>
-                                <button onClick={() => setIsFormOpen(false)} className="bg-[var(--card-bg)] p-2 rounded-full hover:bg-[var(--bg-main)] border border-[var(--border-color)] transition-colors text-gray-500"><X size={18} /></button>
                             </div>
                             
                             {/* Polished Modal Content with Tighter Spacing */}
-                            <div className="overflow-y-auto p-5 pb-6">
-                                <form id="product-form" onSubmit={saveProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex-1 overflow-y-auto p-4 pb-24">
+                                <form id="product-form" onSubmit={saveProduct} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div className="md:col-span-2 space-y-3">
                                         <div className="flex flex-col items-center justify-center gap-3 p-4 border-2 border-dashed border-[var(--border-color)] rounded-[16px] bg-[var(--bg-main)]/50 hover:bg-[var(--bg-main)] transition-colors relative group">
                                             {productForm.image_url ? (
@@ -642,9 +653,9 @@ export const Admin: React.FC = () => {
                                     </div>
                                 </form>
                             </div>
-                            <div className="bg-[var(--card-bg)] p-4 border-t border-[var(--border-color)] sticky bottom-0 z-20 shrink-0 w-full">
-                                <button form="product-form" type="submit" disabled={isSaving} className="w-full bg-[var(--primary-btn)] text-white py-4 rounded-[12px] font-bold shadow-lg hover:opacity-90 active:scale-[0.98] transition-all text-sm flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            <div className="bg-[var(--card-bg)] p-4 border-t border-[var(--border-color)] sticky bottom-0 z-20 shrink-0 w-full pb-safe">
+                                <button form="product-form" type="submit" disabled={isSaving} className="w-full bg-[var(--primary-btn)] text-white py-4 rounded-[16px] font-bold shadow-lg hover:opacity-90 active:scale-[0.98] transition-all text-base flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
                                     {editingId ? 'Update Product' : 'Save Product'}
                                 </button>
                             </div>
@@ -761,20 +772,20 @@ export const Admin: React.FC = () => {
                         orders.map(order => (
                             <div key={order.id} className="bg-[var(--card-bg)] rounded-[20px] shadow-sm border border-[#E7E5E4] dark:border-gray-800 overflow-hidden hover:border-[#064E3B]/20 transition-colors duration-200">
                                 <div className="bg-[#FFFCF0] dark:bg-gray-800/50 p-4 border-b border-[var(--border-color)] flex justify-between items-center transition-colors duration-200">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-900/20 flex items-center justify-center text-[#064E3B] dark:text-emerald-400 font-bold border border-emerald-500/20 dark:border-emerald-900/30">
-                                            #{order.id.slice(0, 4)}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-[var(--text-primary)]">{order.customer_name}</p>
-                                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold flex items-center gap-1">
-                                                <Calendar size={10} /> {new Date(order.created_at).toLocaleDateString()}
-                                            </p>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Order ID</p>
+                                        <p className="font-mono text-base font-black text-[var(--text-primary)]">{order.id.slice(0, 8).toUpperCase()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                            order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-600' :
+                                            order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-600' :
+                                            order.status === 'cancelled' ? 'bg-red-500/10 text-red-600' :
+                                            'bg-blue-500/10 text-blue-600'
+                                        }`}>
+                                            {order.status}
                                         </div>
                                     </div>
-                                     <div className="text-right">
-                                       <span className="block text-lg font-black text-[#064E3B] dark:text-emerald-400">₹{order.total}</span>
-                                     </div>
                                 </div>
                                 
                                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -787,6 +798,10 @@ export const Admin: React.FC = () => {
                                                     <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{item.price * item.quantity}</span>
                                                 </div>
                                             ))}
+                                            <div className="flex justify-between text-sm pt-2 mt-2 border-t border-[var(--border-color)]">
+                                                <span className="font-bold text-[var(--text-primary)]">Total Amount</span>
+                                                <span className="font-black text-lg text-[#064E3B] dark:text-emerald-400">₹{order.total}</span>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -794,11 +809,17 @@ export const Admin: React.FC = () => {
                                         <div>
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Customer Details</p>
                                             <div className="space-y-1">
+                                                <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)] bg-[var(--bg-main)]/30 p-2 rounded-[12px] border border-[var(--border-color)] transition-colors duration-200">
+                                                    <span className="w-4 flex justify-center"><User size={14} className="text-gray-400" /></span> <span>{order.customer_name}</span>
+                                                </div>
                                                 <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-body)] bg-[var(--bg-main)]/30 p-2 rounded-[12px] border border-[var(--border-color)] transition-colors duration-200">
-                                                    <Phone size={14} className="text-gray-400" /> <a href={`tel:${order.phone}`} className="hover:text-blue-600 dark:hover:text-blue-400">{order.phone}</a>
+                                                    <span className="w-4 flex justify-center"><Calendar size={14} className="text-gray-400" /></span> <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-body)] bg-[var(--bg-main)]/30 p-2 rounded-[12px] border border-[var(--border-color)] transition-colors duration-200">
+                                                    <span className="w-4 flex justify-center"><Phone size={14} className="text-gray-400" /></span> <a href={`tel:${order.phone}`} className="hover:text-blue-600 dark:hover:text-blue-400">{order.phone}</a>
                                                 </div>
                                                 <div className="flex items-start gap-2 text-xs font-medium text-[var(--text-body)] bg-[var(--bg-main)]/30 p-2 rounded-[12px] border border-[var(--border-color)] transition-colors duration-200">
-                                                    <MapPin size={14} className="text-gray-400 mt-0.5" /> <span>{order.address}</span>
+                                                    <span className="w-4 flex justify-center mt-0.5"><MapPin size={14} className="text-gray-400" /></span> <span>{order.address}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -814,10 +835,6 @@ export const Admin: React.FC = () => {
                                             </select>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div className={`px-4 py-2 text-xs font-bold text-center border-t border-opacity-20 ${STATUS_OPTIONS.find(s => s.value === order.status)?.color}`}>
-                                    STATUS: {order.status?.toUpperCase() || 'PENDING'}
                                 </div>
                             </div>
                         ))

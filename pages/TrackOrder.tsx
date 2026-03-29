@@ -100,14 +100,21 @@ export const TrackOrder: React.FC = () => {
             return (
               <div key={order.id} className="bg-[var(--card-bg)] rounded-[24px] shadow-[var(--shadow-premium)] border border-[var(--border-color)] overflow-hidden animate-fade-in">
                 {/* Order Header */}
-                <div className="p-5 border-b border-[var(--border-color)] flex justify-between items-start bg-emerald-500/5">
+                <div className="p-5 border-b border-[var(--border-color)] flex justify-between items-center bg-emerald-500/5">
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Order ID: {order.id.slice(0, 8)}</p>
-                    <p className="font-black text-xl text-[var(--text-primary)]">₹{order.total}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Order ID</p>
+                    <p className="font-mono text-base font-black text-[var(--text-primary)]">{order.id.slice(0, 8).toUpperCase()}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Date</p>
-                    <p className="text-xs font-bold text-[var(--text-body)] opacity-80">{new Date(order.created_at).toLocaleDateString()}</p>
+                  <div className="text-right flex flex-col items-end">
+                    <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-600' :
+                      order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-600' :
+                      order.status === 'cancelled' ? 'bg-red-500/10 text-red-600' :
+                      'bg-blue-500/10 text-blue-600'
+                    }`}>
+                      {order.status}
+                    </div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-2">{new Date(order.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
 
@@ -172,6 +179,10 @@ export const TrackOrder: React.FC = () => {
                         <span className="font-black text-[var(--text-primary)]">₹{item.price * item.quantity}</span>
                       </div>
                     ))}
+                    <div className="flex justify-between text-sm pt-2 mt-2 border-t border-[var(--border-color)]">
+                      <span className="font-bold text-[var(--text-primary)]">Total Amount</span>
+                      <span className="font-black text-lg text-[#064E3B] dark:text-emerald-400">₹{order.total}</span>
+                    </div>
                   </div>
                 </div>
               </div>
