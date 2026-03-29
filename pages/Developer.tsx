@@ -16,11 +16,9 @@ import { Order } from '../types';
 
 interface Profile {
   id: string;
-  user_id: string;
   name: string;
-  email: string;
-  created_at: string;
-  phone?: string;
+  mobile: string;
+  address: string;
 }
 
 interface ActivityLog {
@@ -126,7 +124,7 @@ export const Developer: React.FC = () => {
       // Attempt to fetch with created_at, but handle failure if column missing
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, user_id, name, email");
+        .select("id, name, mobile, address");
 
       if (error) {
         console.log("Fetch error:", error);
@@ -138,8 +136,8 @@ export const Developer: React.FC = () => {
       const safeData = (data || []).map(u => ({
         ...u,
         name: u.name || 'Anonymous',
-        email: u.email || 'N/A',
-        created_at: "N/A" // Fallback as requested if column doesn't exist
+        mobile: u.mobile || 'N/A',
+        address: u.address || 'N/A'
       }));
 
       setUsers(safeData);
@@ -708,7 +706,7 @@ export const Developer: React.FC = () => {
                 {users
                   .filter(u => 
                     (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) || 
-                    (u.email || '').toLowerCase().includes(userSearch.toLowerCase())
+                    (u.mobile || '').toLowerCase().includes(userSearch.toLowerCase())
                   )
                   .map(profile => (
                     <motion.div 
@@ -736,12 +734,12 @@ export const Developer: React.FC = () => {
 
                       <div className="space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500 uppercase tracking-widest font-bold">Email</span>
-                          <span className="text-slate-300 truncate max-w-[150px]">{profile.email || 'N/A'}</span>
+                          <span className="text-slate-500 uppercase tracking-widest font-bold">Mobile</span>
+                          <span className="text-slate-300">{profile.mobile || 'N/A'}</span>
                         </div>
-                        <div className="flex items-center justify-between text-xs pt-3 border-t border-teal-500/5">
-                          <span className="text-slate-500 uppercase tracking-widest font-bold">Joined</span>
-                          <span className="text-teal-500/70">{profile.created_at !== 'N/A' ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</span>
+                        <div className="flex items-start justify-between text-xs pt-3 border-t border-teal-500/5">
+                          <span className="text-slate-500 uppercase tracking-widest font-bold">Address</span>
+                          <span className="text-slate-300 text-right line-clamp-2 ml-4">{profile.address || 'N/A'}</span>
                         </div>
                         <button 
                           onClick={() => setSelectedUser(profile)}
@@ -857,20 +855,16 @@ export const Developer: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email Address</label>
-                  <p className="text-sm font-bold text-white break-all">{selectedUser.email || 'Not provided'}</p>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mobile Number</label>
+                  <p className="text-sm font-bold text-white break-all">{selectedUser.mobile || 'Not provided'}</p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Phone Number</label>
-                  <p className="text-sm font-bold text-white">{selectedUser.phone || 'Not provided'}</p>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Address</label>
+                  <p className="text-sm font-bold text-white">{selectedUser.address || 'Not provided'}</p>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Account ID</label>
                   <p className="text-[10px] font-mono text-teal-500/70">{selectedUser.id}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Member Since</label>
-                  <p className="text-sm font-bold text-white">{selectedUser.created_at !== 'N/A' ? new Date(selectedUser.created_at).toLocaleString() : 'N/A'}</p>
                 </div>
               </div>
 
