@@ -52,8 +52,8 @@ export const Header: React.FC<HeaderProps> = () => {
   };
 
   return (
-    <header className="px-4 sticky top-0 z-50 bg-[var(--card-bg)]/80 backdrop-blur-md border-b border-black/5 dark:border-white/5 h-[56px] flex items-center transition-colors duration-200">
-        <div className="flex items-center justify-between w-full">
+    <header className="px-4 sticky top-0 z-50 bg-[var(--card-bg)]/80 backdrop-blur-md border-b border-black/5 dark:border-white/5 pt-safe flex flex-col justify-center transition-colors duration-200">
+        <div className="flex items-center justify-between w-full h-[56px]">
             {/* Left: Brand Logo + Name */}
             <div className="flex items-center gap-3.5 group cursor-pointer select-none" onClick={() => push('/')}>
                 <div className="relative w-10 h-10 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105">

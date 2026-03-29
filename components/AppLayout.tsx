@@ -13,7 +13,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activePage, page
   const { pathname } = useNavigation();
 
   return (
-    <div className="w-full bg-[var(--bg-main)] min-h-screen relative flex flex-col shadow-2xl overflow-x-hidden transition-colors duration-300">
+    <div className="w-full max-w-md mx-auto bg-[var(--bg-main)] min-h-screen-safe relative flex flex-col shadow-2xl overflow-x-hidden transition-colors duration-300">
         <Header title={pageTitle} />
 
         <AnimatePresence mode="wait">
@@ -23,7 +23,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activePage, page
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="p-2 space-y-4 pb-20 flex-grow relative z-10 w-full box-border"
+            className="p-4 space-y-4 pb-safe flex-grow relative z-10 w-full box-border mb-20"
           >
               {/* Page Title - Only if provided and not on home */}
               {pageTitle && pathname !== '/' && pathname !== '/home' && (

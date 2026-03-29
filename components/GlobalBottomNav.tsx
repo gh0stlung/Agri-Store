@@ -20,7 +20,7 @@ export const GlobalBottomNav: React.FC<GlobalBottomNavProps> = ({ activePage }) 
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full z-[999] h-[65px] bg-[rgba(20,30,50,0.6)] backdrop-blur-[20px] [-webkit-backdrop-filter:blur(20px)] border-t border-[rgba(255,255,255,0.08)] flex items-center justify-around px-2 shadow-[0_-4px_20px_rgba(0,255,150,0.15)] transition-colors duration-200">
+    <nav className="fixed bottom-0 left-0 w-full z-[999] bg-[rgba(20,30,50,0.6)] backdrop-blur-[20px] [-webkit-backdrop-filter:blur(20px)] border-t border-[rgba(255,255,255,0.08)] flex items-center justify-around px-2 pb-safe shadow-[0_-4px_20px_rgba(0,255,150,0.15)] transition-colors duration-200 h-[calc(65px+env(safe-area-inset-bottom,0px))]">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = activePage === item.id;

@@ -25,7 +25,7 @@ import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 
 const AppContent: React.FC = () => {
   return (
-    <div className="max-w-md mx-auto relative min-h-[100dvh] bg-[var(--bg-main)] shadow-2xl flex flex-col">
+    <div className="max-w-md mx-auto relative min-h-screen-safe bg-[var(--bg-main)] shadow-2xl flex flex-col overflow-x-hidden">
       <ScrollToTop />
       
       <Routes>
