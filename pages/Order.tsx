@@ -1,0 +1,289 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigation } from '../context/NavigationContext';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { CheckCircle, Loader2, MapPin, User, Phone, Package, ShoppingBag } from 'lucide-react';
+import { Link } from '../components/Link';
+
+import { AppLayout } from '../components/AppLayout';
+
+export const Order: React.FC = () => {
+  const { push } = useNavigation();
+  const { cart, cartTotal, clearCart } = useCart();
+  const { user } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    mobile: '',
+    address: ''
+  });
+  const [profile, setProfile] = useState<any>(null);
+  const [useSavedProfile, setUseSavedProfile] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [orderComplete, setOrderComplete] = useState(false);
+  const [confirmedOrderId, setConfirmedOrderId] = useState('');
+
+  // Redirect if cart is empty and not completed
+  useEffect(() => {
+    if (cart.length === 0 && !orderComplete) {
+      push('/catalog');
+    }
+  }, [cart, orderComplete, push]);
+
+  // Fetch profile and pre-fill form
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user && supabase) {
+        // Check local storage first for fast auto-fill
+        const localProfile = localStorage.getItem(`profile_${user.id}`);
+        if (localProfile) {
+          try {
+            const parsed = JSON.parse(localProfile);
+            if (parsed.name || parsed.mobile || parsed.address) {
+              setProfile(parsed);
+              setFormData({
+                name: parsed.name || '',
+                mobile: parsed.mobile || '',
+                address: parsed.address || ''
+              });
+              setUseSavedProfile(true);
+            }
+          } catch(e) {}
+        }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (data && !error) {
+          setProfile(data);
+          setFormData({
+            name: data.name || '',
+            mobile: data.mobile || '',
+            address: data.address || ''
+          });
+          if (data.name || data.mobile || data.address) {
+            setUseSavedProfile(true);
+          }
+          localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
+        }
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
+  const handleOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!cart || cart.length === 0) {
+        alert("Cart empty");
+        return;
+      }
+
+      if (!supabase) throw new Error('Supabase not initialized');
+      const { data } = await supabase.auth.getUser();
+
+      if (!data.user) {
+        alert("Login required");
+        window.location.href = "/login";
+        return;
+      }
+
+      setLoading(true);
+      const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+
+      const { data: orderData, error } = await supabase.from("orders").insert([
+        {
+          user_id: data.user.id,
+          customer_name: formData.name || profile?.name || "Guest",
+          phone: formData.mobile || profile?.mobile || "",
+          address: formData.address || profile?.address || "",
+          items: cart,
+          total: total,
+          status: "pending"
+        },
+      ]).select().single();
+
+      if (error) {
+        alert("❌ Order failed: " + error.message);
+        return;
+      }
+
+      if (orderData) setConfirmedOrderId(orderData.id);
+
+      alert("✅ Order saved in database");
+      setOrderComplete(true);
+      clearCart();
+
+    } catch (err) {
+      alert("Error placing order");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (orderComplete) {
+    return (
+      <div className="min-h-[100dvh] bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
+        {/* Confetti / Decoration Background */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+            <div className="absolute top-10 left-10 text-emerald-500/20 opacity-20"><ShoppingBag size={64} /></div>
+            <div className="absolute bottom-20 right-10 text-emerald-500/20 opacity-20"><Package size={80} /></div>
+        </div>
+
+        <div className="bg-[var(--card-bg)] p-8 rounded-[32px] shadow-[var(--shadow-premium)] border border-[var(--border-color)] max-w-sm w-full relative z-10">
+            <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 mb-6 mx-auto shadow-inner">
+            <CheckCircle size={48} strokeWidth={3} />
+            </div>
+            <h2 className="text-2xl font-black text-[var(--text-primary)] font-serif mb-2">Order Placed!</h2>
+            <p className="text-[var(--text-body)] mb-6 font-medium text-sm opacity-80">Thank you, {formData.name}.<br/>Your order has been successfully placed.</p>
+            
+            <div className="bg-emerald-500/10 rounded-xl p-4 mb-6 border border-emerald-500/20">
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Order ID: {confirmedOrderId.slice(0, 8).toUpperCase()}</p>
+                <p className="text-[10px] text-[var(--text-body)] opacity-70 leading-relaxed">
+                    You can track your order status anytime using your mobile number <strong>{formData.mobile}</strong>.
+                </p>
+                <Link href="/track" className="mt-3 block bg-[var(--card-bg)] text-emerald-600 dark:text-emerald-400 text-xs font-bold py-2 rounded-lg shadow-sm border border-[var(--border-color)] hover:opacity-80 transition-colors">
+                    Track Order Now
+                </Link>
+            </div>
+            
+            <button 
+                onClick={() => push('/')}
+                className="bg-[var(--primary-btn)] text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:opacity-90 active:scale-95 transition-all w-full"
+            >
+                Back to Home
+            </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AppLayout activePage="catalog" pageTitle="Checkout">
+      <div className="max-w-md mx-auto">
+        {/* Order Summary Card */}
+        <div className="bg-[var(--card-bg)] rounded-[24px] shadow-[var(--shadow-soft)] border border-[var(--border-color)] p-5 mb-6 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-[var(--primary-btn)]"></div>
+          <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <ShoppingBag size={16} /> Order Summary
+              </h3>
+              <span className="text-xs font-bold text-gray-400">{cart.length} items</span>
+          </div>
+          
+          <div className="space-y-3 mb-5 max-h-40 overflow-y-auto pr-1 scrollbar-hide">
+            {cart.map((item) => (
+              <div key={item.id} className="flex justify-between items-center text-sm py-1 border-b border-dashed border-[var(--border-color)] last:border-0">
+                <div className="flex items-center gap-3">
+                    <span className="font-bold text-[var(--text-primary)] bg-[var(--input-bg)] w-6 h-6 flex items-center justify-center rounded-[6px] text-xs shadow-sm border border-[var(--border-color)]">{item.quantity}</span>
+                    <div className="flex flex-col">
+                        <span className="text-[var(--text-body)] font-bold line-clamp-1">{item.name}</span>
+                        <span className="text-[10px] text-gray-400">{item.unit || 'unit'}</span>
+                    </div>
+                </div>
+                <span className="font-bold text-[var(--text-primary)]">₹{item.price * item.quantity}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="bg-[var(--input-bg)] rounded-[16px] p-3 flex justify-between items-center border border-[var(--border-color)]">
+            <span className="font-bold text-gray-500 text-sm">Total Payable</span>
+            <span className="text-xl font-black text-[var(--text-primary)]">₹{cartTotal}</span>
+          </div>
+        </div>
+
+        {/* Details Form */}
+        <form onSubmit={handleOrder} className="space-y-4">
+            <div className="flex justify-between items-center mb-2 ml-1">
+                <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">Delivery Details</h3>
+                {useSavedProfile && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-full flex items-center gap-1">
+                            <CheckCircle size={10} /> Using saved details
+                        </span>
+                        <button 
+                            type="button" 
+                            onClick={() => push('/profile')}
+                            className="text-[10px] text-[var(--primary-btn)] font-bold hover:underline"
+                        >
+                            Edit
+                        </button>
+                    </div>
+                )}
+            </div>
+            
+            {useSavedProfile ? (
+                <div className="bg-[var(--card-bg)] rounded-[16px] p-4 border border-[var(--border-color)] shadow-sm space-y-3">
+                    <div className="flex items-center gap-3">
+                        <User className="text-gray-400" size={18} />
+                        <span className="font-bold text-[var(--text-primary)]">{formData.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Phone className="text-gray-400" size={18} />
+                        <span className="font-bold text-[var(--text-primary)]">{formData.mobile}</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <MapPin className="text-gray-400 mt-0.5" size={18} />
+                        <span className="font-bold text-[var(--text-primary)] text-sm">{formData.address}</span>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <div className="relative group">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
+                        <input 
+                            type="text" 
+                            required 
+                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
+                            placeholder="Full Name"
+                            value={formData.name}
+                            onChange={e => setFormData({...formData, name: e.target.value})}
+                        />
+                    </div>
+                    
+                    <div className="relative group">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
+                        <input 
+                            type="tel" 
+                            required 
+                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
+                            placeholder="Mobile Number"
+                            value={formData.mobile}
+                            onChange={e => setFormData({...formData, mobile: e.target.value})}
+                        />
+                    </div>
+                    
+                    <div className="relative group">
+                        <MapPin className="absolute left-4 top-4 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
+                        <textarea 
+                            required 
+                            rows={3}
+                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all resize-none"
+                            placeholder="Full Address (Village, Landmark...)"
+                            value={formData.address}
+                            onChange={e => setFormData({...formData, address: e.target.value})}
+                        />
+                    </div>
+                </>
+            )}
+
+            <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-[#25D366] hover:bg-[#1ebd52] text-white font-bold py-4 rounded-[16px] shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-6 border-b-4 border-[#128C7E]"
+            >
+                {loading ? <Loader2 className="animate-spin" /> : <CheckCircle size={24} fill="white" />}
+                {loading ? 'Processing...' : 'Confirm Order'}
+            </button>
+            <p className="text-center text-[10px] text-gray-400 mt-3 font-medium flex items-center justify-center gap-1">
+                <CheckCircle size={10} /> Secure checkout
+            </p>
+        </form>
+      </div>
+    </AppLayout>
+  );
+};

@@ -1,65 +1,115 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Home } from './pages/Home.tsx';
-import { Catalog } from './pages/Catalog.tsx';
-import { Contact } from './pages/Contact.tsx';
-import { Admin } from './pages/Admin.tsx';
-import { Login } from './pages/Login.tsx';
-import { ProtectedRoute } from './components/ProtectedRoute.tsx';
-import { CartDrawer } from './components/CartDrawer.tsx';
-import { ShoppingBag } from 'lucide-react';
-import { CartProvider, useCart } from './context/CartContext.tsx';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Home } from './pages/Home';
+import { Login } from './pages/Login';
+import { Admin } from './pages/Admin';
+import { AdminLogin } from './pages/AdminLogin';
+import { Catalog } from './pages/Catalog';
+import { Order } from './pages/Order';
+import { TrackOrder } from './pages/TrackOrder';
+import { Contact } from './pages/Contact';
+import { MyOrders } from './pages/MyOrders';
+import { Cart } from './pages/Cart';
+import Profile from './pages/Profile';
+import { Developer } from './pages/Developer';
+import { AIChatDrawer } from './components/AIChatDrawer';
+import { ScrollToTop } from './components/ScrollToTop';
+import { CartProvider } from './context/CartContext';
+import { AIProvider } from './context/AIContext';
+import { AuthProvider } from './context/AuthContext';
+import { NavigationProvider } from './context/NavigationContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 
 const AppContent: React.FC = () => {
-  const { cartCount, isCartOpen, setIsCartOpen } = useCart();
-
   return (
-    <div className="max-w-md mx-auto relative">
+    <div className="max-w-md mx-auto relative min-h-screen-safe bg-[var(--bg-main)] shadow-2xl flex flex-col overflow-x-hidden">
+      <ScrollToTop />
+      
       <Routes>
+        {/* Login Routes - Public */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
+        
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/catalog" element={<Catalog />} />
+        <Route path="/track" element={<TrackOrder />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/cart" element={<Cart />} />
         
-        {/* Protected Admin Route */}
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute>
-              <Admin />
-            </ProtectedRoute>
-          } 
-        />
+        {/* Protected Routes */}
+        <Route path="/order" element={
+          <ProtectedRoute>
+            <Order />
+          </ProtectedRoute>
+        } />
+        <Route path="/my-orders" element={
+          <ProtectedRoute>
+            <MyOrders />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <AdminProtectedRoute>
+            <Admin />
+          </AdminProtectedRoute>
+        } />
+        <Route path="/developer" element={
+          <AdminProtectedRoute>
+            <Developer />
+          </AdminProtectedRoute>
+        } />
         
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* Catch-all route */}
+        <Route path="*" element={<Home />} />
       </Routes>
       
-      {/* Floating Cart Button */}
-      {!isCartOpen && cartCount > 0 && (
-        <button 
-          onClick={() => setIsCartOpen(true)}
-          className="fixed bottom-28 left-6 bg-[#064E3B] text-white p-4 rounded-full shadow-lg z-40 animate-bounce"
-        >
-          <div className="relative">
-            <ShoppingBag size={24} />
-            <span className="absolute -top-2 -right-2 bg-[#78350F] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#064E3B]">
-              {cartCount}
-            </span>
-          </div>
-        </button>
-      )}
-
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <AIChatDrawer />
     </div>
   );
 };
 
+// Wrapper to provide Navigation Context for React-Router environment
+const AppProviderWrapper = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    
+    const navValue = {
+        push: (path: string) => navigate(path),
+        replace: (path: string) => navigate(path, { replace: true }),
+        back: () => navigate(-1),
+        pathname: location.pathname,
+        isNext: false
+    };
+
+    return (
+        <ThemeProvider>
+            <ToastProvider>
+                <NavigationProvider value={navValue}>
+                     <AIProvider>
+                        <AuthProvider>
+                            <CartProvider>
+                                <AppContent />
+                            </CartProvider>
+                        </AuthProvider>
+                     </AIProvider>
+                </NavigationProvider>
+            </ToastProvider>
+        </ThemeProvider>
+    );
+};
+
 export default function App() {
   return (
-    <CartProvider>
-      <HashRouter>
-        <AppContent />
-      </HashRouter>
-    </CartProvider>
+    <BrowserRouter>
+        <AppProviderWrapper />
+    </BrowserRouter>
   );
 }

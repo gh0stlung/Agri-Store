@@ -2,13 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>New Nikhil Khad Bhandar</title>
     <meta name="description" content="Agriculture products, seeds, fertilizers, and pesticides in Ganjdundwara">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              dark: {
+                bg: '#0f172a',
+                card: '#1e293b',
+                text: '#e2e8f0'
+              }
+            }
+          }
+        }
+      }
+    </script>
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#FFFCF0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- Fonts: Merriweather + Plus Jakarta Sans -->
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,50 +34,63 @@
     <style type="text/tailwindcss">
         @layer theme {
             :root {
-                --bg-main: #FFFCF0; /* Warm Cream */
+                --bg-main: #F8F7F2; /* Refined Warm Cream */
                 --text-primary: #064E3B; /* Deep Emerald */
                 --text-secondary: #78350F; /* Copper Brown */
                 --text-body: #27272a; /* Dark Loam */
                 --primary-btn: #064E3B; /* Deep Emerald */
                 --card-bg: #FFFFFF; /* Porcelain White */
-                --shadow-premium: 0 8px 30px rgba(0,0,0,0.08); /* High-End Shadow */
+                --input-bg: #F9F9F8; /* Light Gray Input */
+                --border-color: #E7E5E4; /* Stone 200 */
+                --shadow-soft: 0 4px 20px rgba(0,0,0,0.04); /* Very Soft Shadow */
+                --shadow-premium: 0 12px 40px rgba(0,0,0,0.08); /* High-End Shadow */
+            }
+
+            .dark {
+                --bg-main: #0b1120; /* Deep Navy Blue */
+                --text-primary: #34d399; /* Brighter Emerald */
+                --text-secondary: #fbbf24; /* Amber */
+                --text-body: #e2e8f0; /* Slate 200 */
+                --primary-btn: #10b981;
+                --card-bg: #1e293b; /* Slate 800 */
+                --input-bg: #0f172a; /* Slate 900 */
+                --border-color: #334155; /* Slate 700 */
+                --shadow-soft: 0 4px 20px rgba(0,0,0,0.4);
+                --shadow-premium: 0 12px 40px rgba(0,0,0,0.6);
             }
         }
 
         @layer base {
+            html {
+                scroll-behavior: smooth;
+                @apply transition-colors duration-200;
+            }
             body {
-                @apply bg-[var(--bg-main)] text-[var(--text-body)] font-['Plus_Jakarta_Sans'] antialiased pb-28 selection:bg-[var(--primary-btn)] selection:text-white;
+                @apply bg-[var(--bg-main)] text-[var(--text-body)] font-['Plus_Jakarta_Sans'] antialiased pb-28 selection:bg-[var(--primary-btn)] selection:text-white transition-all duration-200 ease-in-out;
+                -webkit-tap-highlight-color: transparent;
             }
             h1, h2, h3, h4, h5, h6 {
-                @apply font-['Merriweather'] text-[var(--text-primary)];
+                @apply font-['Merriweather'] text-[var(--text-primary)] transition-colors duration-200;
             }
             button, a {
-                @apply cursor-pointer touch-manipulation;
+                @apply cursor-pointer touch-manipulation transition-all duration-200 active:scale-[0.97];
+            }
+            /* Hardware acceleration utility */
+            .hardware-accel {
+                transform: translateZ(0);
+                backface-visibility: hidden;
             }
         }
 
         @layer components {
             .card-premium {
-                @apply bg-[var(--card-bg)] rounded-[16px] shadow-[var(--shadow-premium)] border border-[#E7E5E4] overflow-hidden transform transition-transform duration-300;
-            }
-            .card-interactive {
-                @apply hover:-translate-y-1;
+                @apply bg-[var(--card-bg)] rounded-[24px] shadow-[var(--shadow-soft)] border border-[var(--border-color)] overflow-hidden transform-gpu transition-all duration-300 hover:shadow-[var(--shadow-premium)] hover:-translate-y-1 active:scale-[0.98];
             }
             .btn-premium {
-                @apply bg-[var(--primary-btn)] text-white px-8 py-4 rounded-[16px] font-bold shadow-md hover:shadow-lg active:scale-95 transition-transform duration-150 flex items-center justify-center gap-2 text-base min-h-[48px];
+                @apply bg-[var(--primary-btn)] text-white px-8 py-4 rounded-[18px] font-bold shadow-md hover:shadow-xl hover:shadow-emerald-900/10 hover:scale-[1.02] active:scale-[0.97] transition-all duration-200 ease-out flex items-center justify-center gap-2 text-base min-h-[48px] transform-gpu;
             }
-            .nav-item {
-                @apply flex flex-col items-center justify-center text-xs font-semibold text-[#A8A29E] p-2 w-full transition-colors duration-300 cursor-pointer;
-            }
-            .nav-item.active {
-                @apply text-[var(--text-secondary)] font-bold;
-            }
-            .scrollbar-hide::-webkit-scrollbar {
-                display: none;
-            }
-            .scrollbar-hide {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
+            .skeleton {
+                @apply animate-pulse bg-gray-200 dark:bg-gray-800 rounded-lg;
             }
         }
 
@@ -67,20 +98,25 @@
             .pb-safe {
                 padding-bottom: env(safe-area-inset-bottom);
             }
+            
             .animate-fade-in {
-                animation: fadeIn 0.6s ease-out forwards;
+                animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 opacity: 0;
             }
             
+            .animate-slide-up {
+                animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                opacity: 0;
+            }
+
             @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+
+            @keyframes slideUp {
+                from { transform: translateY(20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
             }
         }
     </style>
@@ -92,13 +128,29 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.95.3",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.564.0"
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "path": "https://esm.sh/path@^0.12.7",
+    "url": "https://esm.sh/url@^0.11.4",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4",
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
+    "next/": "https://esm.sh/next@^16.1.6/"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      // Ensure PWA starts at home page on launch
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        if (window.location.pathname !== '/' && !sessionStorage.getItem('pwa_launched')) {
+          sessionStorage.setItem('pwa_launched', 'true');
+          window.location.href = '/';
+        }
+      }
+    </script>
   </body>
 </html>
