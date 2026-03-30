@@ -52,25 +52,28 @@ export const Header: React.FC<HeaderProps> = () => {
   };
 
   return (
-    <header className="px-4 sticky top-0 z-50 bg-[var(--card-bg)]/80 backdrop-blur-md border-b border-black/5 dark:border-white/5 pt-safe flex flex-col justify-center transition-colors duration-200">
-        <div className="flex items-center justify-between w-full h-[56px]">
+    <header className="px-4 sticky top-0 z-50 bg-[var(--card-bg)]/70 backdrop-blur-xl border-b border-black/5 dark:border-white/5 pt-safe flex flex-col justify-center transition-colors duration-200">
+        <div className="flex items-center justify-between w-full h-[64px]">
             {/* Left: Brand Logo + Name */}
-            <div className="flex items-center gap-3.5 group cursor-pointer select-none" onClick={() => push('/')}>
-                <div className="relative w-10 h-10 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105">
-                    {/* Square Container with Gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-emerald-500 rounded-xl shadow-sm border border-white/10" />
+            <div className="flex items-center gap-4 group cursor-pointer select-none" onClick={() => push('/')}>
+                {/* Modern Premium Logo */}
+                <div className="relative w-11 h-11 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105">
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 bg-emerald-500/20 blur-lg rounded-full" />
                     
-                    {/* Minimal Leaf Icon - Centered properly */}
-                    <div className="relative z-10 w-5 h-5 bg-white rounded-tl-full rounded-br-full rotate-45 flex items-center justify-center overflow-hidden shadow-sm">
-                        <div className="w-full h-[0.5px] bg-emerald-600/20 -rotate-45" />
+                    {/* Glassy Gradient Container */}
+                    <div className="relative w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl shadow-lg border border-white/20 flex items-center justify-center overflow-hidden">
+                        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+                        <span className="text-white font-black text-lg">NK</span>
                     </div>
                 </div>
                 
+                {/* Typography */}
                 <div className="flex flex-col justify-center">
-                    <span className="text-[17px] font-black text-[var(--text-primary)] leading-none tracking-tight">
+                    <span className="text-[17px] font-bold text-[var(--text-primary)] leading-tight tracking-tight">
                         Nikhil Khad
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.25em] mt-1.5 leading-none">
+                    <span className="text-[10px] font-light text-[var(--text-secondary)] uppercase tracking-[0.3em] leading-none">
                         Bhandar
                     </span>
                 </div>

@@ -20,6 +20,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    // Handle email verification redirect
+    const handleAuthRedirect = async () => {
+      // Check if the URL has a hash fragment indicating an auth redirect
+      if (window.location.hash) {
+        try {
+          const { data, error } = await (supabase!.auth as any).getSessionFromUrl({
+            storeSession: true,
+          });
+          if (error) {
+            console.error("Error handling auth redirect:", error);
+          } else if (data.session) {
+            console.log("Session recovered from URL");
+            // Clear the hash from the URL
+            window.history.replaceState(null, '', window.location.pathname);
+            // Redirect to home
+            window.location.replace('/');
+          }
+        } catch (err) {
+          console.error("Auth redirect handling failed:", err);
+        }
+      }
+    };
+
+    handleAuthRedirect();
+
     // Check active sessions and sets the user
     const getUser = async () => {
       try {
