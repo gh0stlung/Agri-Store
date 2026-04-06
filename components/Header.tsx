@@ -61,10 +61,13 @@ export const Header: React.FC<HeaderProps> = () => {
                     {/* Glow effect */}
                     <div className="absolute inset-0 bg-emerald-500/20 blur-lg rounded-full" />
                     
-                    {/* Glassy Gradient Container */}
-                    <div className="relative w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl shadow-lg border border-white/20 flex items-center justify-center overflow-hidden">
-                        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
-                        <span className="text-white font-black text-lg">NK</span>
+                    {/* Image Container */}
+                    <div className="relative w-full h-full bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-black/5 dark:border-white/10 flex items-center justify-center overflow-hidden p-1">
+                        <img 
+                            src="/logo.png" 
+                            alt="Nikhil Khad Bhandar" 
+                            className="w-full h-full object-contain dark:brightness-110 dark:contrast-125 transition-all"
+                        />
                     </div>
                 </div>
                 

@@ -31,8 +31,8 @@ export const Contact: React.FC = () => {
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-xl translate-y-1/3 -translate-x-1/3 z-0"></div>
                 
                 <div className="relative z-10">
-                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20 shadow-inner">
-                        <img src="https://cdn-icons-png.flaticon.com/512/628/628283.png" alt="Logo" className="w-10 h-10 brightness-0 invert opacity-90" />
+                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20 shadow-inner p-1">
+                        <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-md rounded-xl" />
                     </div>
                     <h1 className="text-3xl font-black font-serif mb-2 tracking-tight drop-shadow-sm">New Nikhil<br/>Khad Bhandar</h1>
                     <div className="h-1 w-12 bg-emerald-400/50 mx-auto rounded-full mb-3"></div>

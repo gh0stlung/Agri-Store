@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Lock, ArrowLeft, Loader2, Mail, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Lock, ArrowLeft, Loader2, Mail, Eye, EyeOff } from 'lucide-react';
 import { Link } from '../components/Link';
 
 export const AdminLogin: React.FC = () => {
@@ -69,8 +69,8 @@ export const AdminLogin: React.FC = () => {
           </div>
 
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-[20px] flex items-center justify-center mx-auto mb-4 shadow-[0_0_25px_rgba(16,185,129,0.3)] border border-emerald-400/30">
-                <ShieldCheck size={32} className="text-white" />
+            <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20 shadow-inner p-1">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-md rounded-xl" />
             </div>
             <h1 className="text-2xl font-black text-white font-serif tracking-tight drop-shadow-md">Admin Login</h1>
             <p className="text-emerald-100/50 text-xs font-medium mt-1 tracking-widest uppercase">Secure Admin Access</p>
