@@ -11,9 +11,9 @@ export const Cart: React.FC = () => {
 
   return (
     <AppLayout activePage="cart">
-      <div className="max-w-md mx-auto px-4 pb-32">
+      <div className="max-w-md mx-auto pb-32">
         {/* Page Header */}
-        <div className="pt-2 pb-4 flex items-center justify-between">
+        <div className="pt-2 pb-3 px-4 flex items-center justify-between">
           <h1 className="text-xl font-black text-[var(--text-primary)] font-serif tracking-tight">My Cart</h1>
           <Link 
             href="/my-orders" 
@@ -26,7 +26,7 @@ export const Cart: React.FC = () => {
 
         <div className="animate-fade-in">
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-colors duration-200">
                 <ShoppingBag size={24} className="text-gray-400 dark:text-gray-500" />
               </div>
@@ -41,10 +41,10 @@ export const Cart: React.FC = () => {
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="flex flex-col border-t border-[var(--border-color)]">
               {cart.map((item) => (
-                <div key={item.id} className="bg-[var(--card-bg)] p-3 rounded-xl shadow-sm border border-[var(--border-color)] flex gap-3 items-center transition-colors duration-200">
-                  <div className="w-14 h-14 bg-[var(--input-bg)] rounded-lg overflow-hidden flex-shrink-0 border border-[var(--border-color)] transition-colors duration-200">
+                <div key={item.cartItemId || item.id} className="bg-[var(--bg-main)] px-3 py-3 border-b border-[var(--border-color)] flex gap-3 items-start transition-colors duration-200">
+                  <div className="w-[65px] h-[65px] bg-[var(--input-bg)] rounded-md overflow-hidden flex-shrink-0 border border-[var(--border-color)] transition-colors duration-200">
                     {item.image_url ? (
                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
@@ -54,34 +54,42 @@ export const Cart: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h3 className="font-medium text-[var(--text-body)] text-sm truncate">{item.name}</h3>
-                    <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mt-0.5">₹{item.price}</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 bg-[var(--input-bg)] rounded-lg p-1 border border-[var(--border-color)] transition-colors duration-200">
-                      <button 
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-6 h-6 flex items-center justify-center bg-[var(--card-bg)] rounded shadow-sm text-gray-600 dark:text-gray-300 hover:text-[var(--text-primary)] active:scale-95 transition-all"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="font-bold text-xs w-3 text-center text-[var(--text-body)]">{item.quantity}</span>
-                      <button 
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-6 h-6 flex items-center justify-center bg-[var(--card-bg)] rounded shadow-sm text-gray-600 dark:text-gray-300 hover:text-[var(--text-primary)] active:scale-95 transition-all"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <h3 className="font-bold text-[var(--text-primary)] text-[13px] line-clamp-2 leading-tight">
+                      {item.name}
+                    </h3>
+                    {item.variant_label && (
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{item.variant_label}</span>
+                    )}
                     
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-emerald-600 dark:text-emerald-400 font-bold text-[14px]">₹{item.price.toFixed(2)}</p>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-[var(--input-bg)] rounded border border-[var(--border-color)] h-7">
+                          <button 
+                            onClick={() => updateQuantity(item.cartItemId || item.id, item.quantity - 1)}
+                            className="w-7 h-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-[var(--text-primary)] active:bg-gray-200 dark:active:bg-gray-700 transition-colors"
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span className="font-bold text-[12px] w-5 text-center text-[var(--text-body)]">{item.quantity}</span>
+                          <button 
+                            onClick={() => updateQuantity(item.cartItemId || item.id, item.quantity + 1)}
+                            className="w-7 h-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-[var(--text-primary)] active:bg-gray-200 dark:active:bg-gray-700 transition-colors"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                        
+                        <button 
+                          onClick={() => removeFromCart(item.cartItemId || item.id)}
+                          className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -92,15 +100,15 @@ export const Cart: React.FC = () => {
 
       {/* Cart Summary Fixed Bottom */}
       {cart.length > 0 && (
-        <div className="fixed bottom-[65px] left-0 right-0 z-40 px-4 pb-4 pt-4 bg-gradient-to-t from-[var(--bg-main)] via-[var(--bg-main)] to-transparent pointer-events-none">
-          <div className="max-w-md mx-auto bg-[var(--card-bg)] rounded-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border border-[var(--border-color)] p-4 pointer-events-auto transition-colors duration-200">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">Total Amount</span>
-              <span className="text-xl font-black text-[var(--text-primary)]">₹{cartTotal.toFixed(2)}</span>
+        <div className="fixed bottom-[65px] left-0 right-0 z-40 bg-[var(--bg-main)] border-t border-[var(--border-color)] shadow-sm">
+          <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] uppercase tracking-wider">Total</span>
+              <span className="text-lg font-black text-[var(--text-primary)] leading-none">₹{cartTotal.toFixed(2)}</span>
             </div>
             <button 
               onClick={() => push('/order')}
-              className="w-full bg-[var(--text-primary)] text-[var(--bg-main)] py-3.5 rounded-xl font-bold shadow-lg hover:opacity-90 active:scale-95 transition-all flex justify-center items-center gap-2"
+              className="flex-1 bg-[var(--text-primary)] text-[var(--bg-main)] py-2.5 rounded-lg font-bold shadow-sm hover:opacity-90 active:scale-95 transition-all flex justify-center items-center gap-2 text-sm"
             >
               Place Order
             </button>

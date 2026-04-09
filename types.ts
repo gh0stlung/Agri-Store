@@ -1,3 +1,10 @@
+export interface Variant {
+  id: string;
+  label: string;
+  price: number;
+  image_url?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -8,10 +15,14 @@ export interface Product {
   unit?: string; // e.g., 'kg', 'bag', 'piece'
   is_active: boolean; // Control visibility in catalog
   created_at?: string;
+  variants?: Variant[];
 }
 
 export interface CartItem extends Product {
+  cartItemId: string;
   quantity: number;
+  variant_id?: string;
+  variant_label?: string;
 }
 
 export interface Order {
@@ -50,9 +61,9 @@ export interface DeliveryStaff {
 
 export interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, variant?: Variant) => void;
+  removeFromCart: (cartItemId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
   cartCount: number;

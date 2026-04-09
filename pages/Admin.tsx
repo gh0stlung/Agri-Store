@@ -93,13 +93,14 @@ export const Admin: React.FC = () => {
   
   // Crop State
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   
   // Product Form
   const [productForm, setProductForm] = useState<Partial<Product>>({ 
-    name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true 
+    name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true, variants: []
   });
   
   // Update Form
@@ -202,12 +203,13 @@ export const Admin: React.FC = () => {
 
   // --- HANDLERS ---
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (target: string) => async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || e.target.files.length === 0) return;
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onloadend = () => {
           setCropImageSrc(reader.result as string);
+          setCropTarget(target);
       };
       reader.readAsDataURL(file);
   };
@@ -218,10 +220,24 @@ export const Admin: React.FC = () => {
 
   const handleCropImage = async () => {
     try {
-      if (!cropImageSrc || !croppedAreaPixels) return;
+      if (!cropImageSrc || !croppedAreaPixels || !cropTarget) return;
       const croppedImage = await getCroppedImg(cropImageSrc, croppedAreaPixels);
-      setProductForm(prev => ({ ...prev, image_url: croppedImage }));
+      
+      if (cropTarget === 'main') {
+        setProductForm(prev => ({ ...prev, image_url: croppedImage }));
+      } else {
+        setProductForm(prev => {
+          const newVariants = [...(prev.variants || [])];
+          const variantIndex = newVariants.findIndex(v => v.id === cropTarget);
+          if (variantIndex !== -1) {
+            newVariants[variantIndex].image_url = croppedImage;
+          }
+          return { ...prev, variants: newVariants };
+        });
+      }
+      
       setCropImageSrc(null);
+      setCropTarget(null);
     } catch (e) {
       console.error(e);
       showToast("Error cropping image", "error");
@@ -244,13 +260,13 @@ export const Admin: React.FC = () => {
 
         let finalImageUrl = productForm.image_url;
         
-        // Handle Image Upload if base64 (new selection)
-        if (finalImageUrl && finalImageUrl.startsWith('data:')) {
-             const res = await fetch(finalImageUrl);
+        // Helper to upload base64 images
+        const uploadBase64Image = async (base64Str: string) => {
+             if (!supabase) throw new Error("Supabase not connected");
+             const res = await fetch(base64Str);
              const blob = await res.blob();
              const fileName = `prod_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
              
-             // Upload to 'product-images' bucket
              const { error: uploadError } = await supabase.storage
                 .from('product-images')
                 .upload(fileName, blob, { 
@@ -261,8 +277,22 @@ export const Admin: React.FC = () => {
              if (uploadError) throw new Error(`Image Upload Failed: ${uploadError.message}`);
              
              const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
-             finalImageUrl = data.publicUrl;
+             return data.publicUrl;
+        };
+
+        // Handle Main Image Upload if base64 (new selection)
+        if (finalImageUrl && finalImageUrl.startsWith('data:')) {
+             finalImageUrl = await uploadBase64Image(finalImageUrl);
         }
+
+        // Handle Variant Images
+        const finalVariants = await Promise.all((productForm.variants || []).map(async (variant) => {
+            let variantImageUrl = variant.image_url;
+            if (variantImageUrl && variantImageUrl.startsWith('data:')) {
+                variantImageUrl = await uploadBase64Image(variantImageUrl);
+            }
+            return { ...variant, image_url: variantImageUrl };
+        }));
 
         const payload = { 
             name: productForm.name,
@@ -271,7 +301,8 @@ export const Admin: React.FC = () => {
             stock: Number(productForm.stock),
             unit: productForm.unit,
             image_url: finalImageUrl,
-            is_active: productForm.is_active ?? true
+            is_active: productForm.is_active ?? true,
+            variants: finalVariants
         };
         
         if (editingId) {
@@ -356,7 +387,7 @@ export const Admin: React.FC = () => {
   };
 
   const resetForms = () => {
-    setProductForm({ name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true });
+    setProductForm({ name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true, variants: [] });
     setEditingId(null);
     setText('');
   };
@@ -447,18 +478,18 @@ export const Admin: React.FC = () => {
   }
 
   return (
-    <AppLayout activePage="profile" pageTitle="Admin Panel">
-      <div className="max-w-5xl mx-auto space-y-5 relative pb-10">
+    <AppLayout activePage="profile">
+      <div className="max-w-5xl mx-auto space-y-3 relative pb-10">
         
-        {/* Back Button */}
-        <div className="flex items-center gap-2">
+        {/* Header Row */}
+        <div className="flex items-center gap-3 mt-1 mb-1">
             <button 
                 onClick={() => window.history.back()} 
-                className="p-2 bg-[var(--card-bg)] rounded-xl text-[var(--text-primary)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] transition-colors"
+                className="p-1.5 bg-[var(--card-bg)] rounded-lg text-[var(--text-primary)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] transition-colors"
             >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={18} />
             </button>
-            <span className="text-sm font-bold text-[var(--text-primary)]">Back</span>
+            <h1 className="text-xl font-black text-[var(--text-primary)] tracking-tight leading-none">Admin Panel</h1>
         </div>
 
         {/* Delete Confirmation Modal */}
@@ -576,7 +607,7 @@ export const Admin: React.FC = () => {
                                                 <span className="bg-[var(--card-bg)] text-[var(--text-body)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-[10px] font-bold shadow-sm hover:bg-[var(--bg-main)] transition-all inline-block">
                                                     {isSaving ? 'Processing...' : 'Choose Image'}
                                                 </span>
-                                                <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" disabled={isSaving} />
+                                                <input type="file" accept="image/*" onChange={handleFileSelect('main')} className="hidden" disabled={isSaving} />
                                             </label>
                                         </div>
                                     </div>
@@ -599,7 +630,7 @@ export const Admin: React.FC = () => {
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Price (₹)</label>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Base Price (₹)</label>
                                             <input type="number" required className="w-full py-2 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm" value={productForm.price} onChange={e => setProductForm({...productForm, price: Number(e.target.value)})} placeholder="0" />
                                         </div>
                                         <div>
@@ -611,6 +642,85 @@ export const Admin: React.FC = () => {
                                                 </select>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className="p-3 bg-[var(--bg-main)]/50 rounded-[12px] border border-[var(--border-color)]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Variants (Optional)</label>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setProductForm({...productForm, variants: [...(productForm.variants || []), { id: Date.now().toString(), label: '', price: 0 }]})}
+                                                className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline"
+                                            >
+                                                <Plus size={12} /> Add Variant
+                                            </button>
+                                        </div>
+                                        {productForm.variants && productForm.variants.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {productForm.variants.map((variant, index) => (
+                                                    <div key={variant.id} className="flex gap-3 items-center bg-[var(--card-bg)] p-3 rounded-xl border border-[var(--border-color)]">
+                                                        <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-[var(--bg-main)] border border-[var(--border-color)] flex-shrink-0 group">
+                                                            {variant.image_url ? (
+                                                                <img src={variant.image_url} alt="Variant" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                                    <ImageIcon size={14} />
+                                                                </div>
+                                                            )}
+                                                            <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                                                                <span className="text-white text-[8px] font-bold">Edit</span>
+                                                                <input type="file" accept="image/*" onChange={handleFileSelect(variant.id)} className="hidden" disabled={isSaving} />
+                                                            </label>
+                                                        </div>
+                                                        <div className="flex-1 flex gap-3">
+                                                            <div className="flex-1 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Weight/Size</label>
+                                                                <input 
+                                                                    type="text" 
+                                                                    placeholder="e.g. 5kg" 
+                                                                    className="w-full py-1.5 px-2.5 border border-[var(--border-color)] rounded-[8px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-xs"
+                                                                    value={variant.label}
+                                                                    onChange={e => {
+                                                                        const newVariants = [...(productForm.variants || [])];
+                                                                        newVariants[index].label = e.target.value;
+                                                                        setProductForm({...productForm, variants: newVariants});
+                                                                    }}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="flex flex-col gap-1 w-20 flex-shrink-0">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Price</label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    placeholder="₹" 
+                                                                    className="w-full py-1.5 px-2.5 border border-[var(--border-color)] rounded-[8px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-xs"
+                                                                    value={variant.price}
+                                                                    onChange={e => {
+                                                                        const newVariants = [...(productForm.variants || [])];
+                                                                        newVariants[index].price = Number(e.target.value);
+                                                                        setProductForm({...productForm, variants: newVariants});
+                                                                    }}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newVariants = [...(productForm.variants || [])];
+                                                                newVariants.splice(index, 1);
+                                                                setProductForm({...productForm, variants: newVariants});
+                                                            }}
+                                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">No variants added. Product will use base price.</p>
+                                        )}
                                     </div>
                                     
                                     <div className="flex items-center justify-between p-3 bg-[var(--bg-main)]/50 rounded-[12px] border border-[var(--border-color)]">

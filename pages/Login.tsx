@@ -34,7 +34,7 @@ export const Login: React.FC = () => {
 
     if (isLogin) {
       try {
-        if (!supabase) throw new Error('Supabase not initialized');
+        if (!supabase) throw new Error('Supabase credentials missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password: password.trim(),
@@ -55,14 +55,14 @@ export const Login: React.FC = () => {
           }
         }
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("LOGIN ERROR:", err);
-        alert("Login failed");
+        alert(err.message || "Login failed");
         setLoading(false);
       }
     } else {
       try {
-        if (!supabase) throw new Error('Supabase not initialized');
+        if (!supabase) throw new Error('Supabase credentials missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password: password.trim(),
@@ -83,9 +83,9 @@ export const Login: React.FC = () => {
             window.location.href = "/";
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("SIGNUP ERROR:", err);
-        alert("Signup failed");
+        alert(err.message || "Signup failed");
         setLoading(false);
       }
     }

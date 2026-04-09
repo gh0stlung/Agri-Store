@@ -30,6 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           if (error) {
             console.error("Error handling auth redirect:", error);
+            if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token')) {
+              await supabase!.auth.signOut().catch(console.error);
+            }
           } else if (data.session) {
             console.log("Session recovered from URL");
             // Clear the hash from the URL
@@ -49,10 +52,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const getUser = async () => {
       try {
         const { data, error } = await supabase!.auth.getUser();
-        console.log("Initial auth check:", data, error);
-        setUser(data.user);
+        if (error) {
+          console.error("Auth check error:", error);
+          if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token')) {
+            await supabase!.auth.signOut().catch(console.error);
+          }
+        }
+        setUser(data?.user || null);
       } catch (err) {
-        console.error("Auth check error:", err);
+        console.error("Auth check exception:", err);
       } finally {
         setLoading(false);
       }

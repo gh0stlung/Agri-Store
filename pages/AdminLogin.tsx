@@ -16,7 +16,7 @@ export const AdminLogin: React.FC = () => {
     setError('');
 
     try {
-      if (!supabase) throw new Error('Supabase not initialized');
+      if (!supabase) throw new Error('Supabase credentials missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
@@ -39,9 +39,9 @@ export const AdminLogin: React.FC = () => {
         }
       }
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("LOGIN ERROR:", err);
-      alert("Login failed");
+      alert(err.message || "Login failed");
       setLoading(false);
     }
   };
