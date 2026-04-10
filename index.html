@@ -141,6 +141,13 @@
 }
 </script>
 <link rel="stylesheet" href="/index.css">
+    <!-- Sentry Error Tracking -->
+    <script src="https://browser.sentry-cdn.com/8.0.0/bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+      Sentry.init({
+        dsn: "https://ad6f6fd54bcee9b68143e0a7642fcb03@o4511196386164736.ingest.us.sentry.io/4511196399206400",
+      });
+    </script>
 </head>
   <body>
     <div id="root"></div>
