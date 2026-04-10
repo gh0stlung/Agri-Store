@@ -34,6 +34,12 @@ export interface Order {
   customer_name?: string;
   phone?: string;
   address?: string;
+  assigned_to?: string;
+  delivery_lat?: number;
+  delivery_lng?: number;
+  delivery_updated_at?: string;
+  payment_status?: string;
+  payment_method?: string;
 }
 
 export interface StoreUpdate {

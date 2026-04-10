@@ -10,7 +10,6 @@ export const DeliveryLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
   const [staffInfo, setStaffInfo] = useState<{ name: string; phone: string } | null>(null);
-  const [lookingUp, setLookingUp] = useState(false);
 
   const handleDigit = (d: string) => {
     if (pin.length < 6) setPin(prev => prev + d);
@@ -30,7 +29,6 @@ export const DeliveryLogin: React.FC = () => {
   React.useEffect(() => {
     const preview = async () => {
       if (pin.length >= 4 && supabase) {
-        setLookingUp(true);
         const { data } = await supabase
           .from('delivery_staff')
           .select('name, phone')
@@ -38,7 +36,6 @@ export const DeliveryLogin: React.FC = () => {
           .eq('is_active', true)
           .single();
         setStaffInfo(data || null);
-        setLookingUp(false);
       } else {
         setStaffInfo(null);
       }

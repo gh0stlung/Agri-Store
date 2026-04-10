@@ -6,7 +6,8 @@ import {
   Plus, Trash2, Edit2, Save, X, 
   Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon,
   Search, Calendar, Phone, Clock, AlertTriangle, Loader2,
-  Inbox, User, ArrowLeft, Truck
+  Inbox, User, ArrowLeft, Truck, MapPin, Navigation, Edit3, Eye, EyeOff,
+  RefreshCw
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { AppLayout } from '../components/AppLayout';
@@ -85,7 +86,7 @@ export const Admin: React.FC = () => {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingUpdates, setLoadingUpdates] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
-  const [loadingDelivery, setLoadingDelivery] = useState(true);
+  const [loadingDelivery, setLoadingDelivery] = useState(false);
   
   // Forms & Edit State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -105,8 +106,12 @@ export const Admin: React.FC = () => {
     name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true, variants: []
   });
 
-  // Delivery Staff Form
   const [staffForm, setStaffForm] = useState({ name: '', phone: '', pin: '' });
+  const [editingStaff, setEditingStaff] = useState<any | null>(null);
+  const [isStaffFormOpen, setIsStaffFormOpen] = useState(false);
+  const [savingStaff, setSavingStaff] = useState(false);
+  const [showPins, setShowPins] = useState<Record<string, boolean>>({});
+  const [liveLocations, setLiveLocations] = useState<any[]>([]);
   
   // Update Form
   const [text, setText] = useState('');
@@ -203,20 +208,36 @@ export const Admin: React.FC = () => {
   };
 
   const loadDeliveryStaff = async () => {
+    if (!supabase) return;
+    setLoadingDelivery(true);
     try {
-      if (!supabase) return;
-      const { data, error } = await supabase.from('delivery_staff').select('*').order('name', { ascending: true });
-      if (error) throw error;
+      const { data } = await supabase.from('delivery_staff').select('*').order('created_at', { ascending: false });
       setDeliveryStaff(data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingDelivery(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoadingDelivery(false); }
+  };
+
+  const loadLiveLocations = async () => {
+    if (!supabase) return;
+    try {
+      const { data } = await supabase
+        .from('delivery_locations')
+        .select('*, delivery_staff(name, phone)')
+        .order('updated_at', { ascending: false });
+      // Get latest per staff
+      const latest: Record<string, any> = {};
+      (data || []).forEach(loc => {
+        if (!latest[loc.staff_id] || new Date(loc.updated_at) > new Date(latest[loc.staff_id].updated_at)) {
+          latest[loc.staff_id] = loc;
+        }
+      });
+      setLiveLocations(Object.values(latest));
+    } catch (err) { console.error(err); }
   };
 
   const fetchData = async () => {
     await Promise.all([loadProducts(), loadOrders(), loadUpdates(), loadDeliveryStaff()]);
+    loadLiveLocations();
   };
 
   // --- HANDLERS ---
@@ -309,13 +330,13 @@ export const Admin: React.FC = () => {
             if (variantImageUrl && variantImageUrl.startsWith('data:')) {
                 variantImageUrl = await uploadBase64Image(variantImageUrl);
             }
-            return { ...variant, image_url: variantImageUrl };
+            return { ...variant, image_url: variantImageUrl, price: Number(variant.price) };
         }));
 
         const payload = { 
             name: productForm.name,
             category: productForm.category,
-            price: Number(productForm.price),
+            price: (finalVariants && finalVariants.length > 0) ? 0 : Number(productForm.price),
             stock: Number(productForm.stock),
             unit: productForm.unit,
             image_url: finalImageUrl,
@@ -404,50 +425,63 @@ export const Admin: React.FC = () => {
       }
   };
 
+  const saveStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setSavingStaff(true);
+    try {
+      if (editingStaff) {
+        const { error } = await supabase.from('delivery_staff').update({
+          name: staffForm.name.trim(),
+          phone: staffForm.phone.trim(),
+          pin: staffForm.pin.trim(),
+        }).eq('id', editingStaff.id);
+        if (error) throw error;
+        showToast('Staff updated!');
+      } else {
+        const { error } = await supabase.from('delivery_staff').insert([{
+          name: staffForm.name.trim(),
+          phone: staffForm.phone.trim(),
+          pin: staffForm.pin.trim(),
+          is_active: true
+        }]);
+        if (error) throw error;
+        showToast('Delivery staff added!');
+      }
+      setStaffForm({ name: '', phone: '', pin: '' });
+      setEditingStaff(null);
+      setIsStaffFormOpen(false);
+      loadDeliveryStaff();
+    } catch (err: any) {
+      showToast(err.message || 'Failed', 'error');
+    } finally { setSavingStaff(false); }
+  };
+
+  const deleteStaff = async (id: string) => {
+    if (!supabase) return;
+    try {
+      await supabase.from('delivery_staff').delete().eq('id', id);
+      showToast('Staff removed');
+      loadDeliveryStaff();
+    } catch (err: any) { showToast('Failed', 'error'); }
+  };
+
+  const toggleActiveStaff = async (id: string, current: boolean) => {
+    if (!supabase) return;
+    await supabase.from('delivery_staff').update({ is_active: !current }).eq('id', id);
+    loadDeliveryStaff();
+  };
+
   const assignOrderToStaff = async (orderId: string, staffId: string) => {
     if (!supabase) return;
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ assigned_to: staffId || null })
-        .eq('id', orderId);
-      
-      if (error) throw error;
-      showToast(staffId ? "Order assigned successfully" : "Assignment removed");
-      setOrders(orders.map(o => o.id === orderId ? { ...o, assigned_to: staffId || null } : o));
-    } catch (err) {
-      console.error(err);
-      showToast("Failed to assign order", "error");
-    }
-  };
-
-  const saveDeliveryStaff = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supabase) return;
-    setIsSaving(true);
-    try {
-      const { error } = await supabase.from('delivery_staff').insert([staffForm]);
-      if (error) throw error;
-      showToast("Delivery staff added!");
-      setStaffForm({ name: '', phone: '', pin: '' });
-      loadDeliveryStaff();
-    } catch (err: any) {
-      showToast(err.message, "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const deleteDeliveryStaff = async (id: string) => {
-    if (!supabase) return;
-    try {
-      const { error } = await supabase.from('delivery_staff').delete().eq('id', id);
-      if (error) throw error;
-      showToast("Staff removed");
-      loadDeliveryStaff();
-    } catch (err) {
-      showToast("Failed to delete staff", "error");
-    }
+      await supabase.from('orders').update({
+        assigned_to: staffId || null,
+        status: staffId ? 'shipped' : 'confirmed'
+      }).eq('id', orderId);
+      showToast(staffId ? 'Order assigned!' : 'Assignment removed');
+      loadOrders();
+    } catch (err: any) { showToast('Failed to assign', 'error'); }
   };
 
   const resetForms = () => {
@@ -696,7 +730,7 @@ export const Admin: React.FC = () => {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Base Price (₹)</label>
-                                            <input type="number" required className="w-full py-2 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm" value={productForm.price} onChange={e => setProductForm({...productForm, price: Number(e.target.value)})} placeholder="0" />
+                                            <input type="number" required={!(productForm.variants && productForm.variants.length > 0)} disabled={productForm.variants && productForm.variants.length > 0} className="w-full py-2 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm disabled:opacity-50 disabled:cursor-not-allowed" value={productForm.variants && productForm.variants.length > 0 ? 0 : productForm.price} onChange={e => setProductForm({...productForm, price: Number(e.target.value)})} placeholder="0" />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Stock</label>
@@ -714,7 +748,7 @@ export const Admin: React.FC = () => {
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Variants (Optional)</label>
                                             <button 
                                                 type="button" 
-                                                onClick={() => setProductForm({...productForm, variants: [...(productForm.variants || []), { id: Date.now().toString(), label: '', price: 0 }]})}
+                                                onClick={() => setProductForm({...productForm, variants: [...(productForm.variants || []), { id: Date.now().toString(), label: '', price: '' as any }]})}
                                                 className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline"
                                             >
                                                 <Plus size={12} /> Add Variant
@@ -757,7 +791,7 @@ export const Admin: React.FC = () => {
                                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Price</label>
                                                                 <input 
                                                                     type="number" 
-                                                                    placeholder="₹" 
+                                                                    placeholder="0" 
                                                                     className="w-full py-1.5 px-2.5 border border-[var(--border-color)] rounded-[8px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-xs"
                                                                     value={variant.price}
                                                                     onChange={e => {
@@ -887,7 +921,7 @@ export const Admin: React.FC = () => {
                                         <div className="flex justify-between items-end">
                                             <div>
                                                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Stock: {p.stock} {p.unit}</span>
-                                                <div className="font-black text-emerald-600 dark:text-emerald-400 text-sm">₹{p.price}</div>
+                                                <div className="font-black text-emerald-600 dark:text-emerald-400 text-sm">₹{p.variants && p.variants.length > 0 ? p.variants[0].price : p.price}</div>
                                             </div>
                                             <div className="flex gap-1.5">
                                                 <button onClick={() => { setEditingId(p.id); setProductForm(p); setIsFormOpen(true); }} className="p-1.5 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 border border-blue-500/20 active:scale-95 transition-all"><Edit2 size={14}/></button>
@@ -948,22 +982,21 @@ export const Admin: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Order Assignment */}
-                                <div className="mb-2 flex items-center gap-2">
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Assign To:</span>
-                                    <div className="relative flex-1">
-                                        <select
-                                            value={(order as any).assigned_to || ''}
-                                            onChange={(e) => assignOrderToStaff(order.id, e.target.value)}
-                                            className="w-full bg-[var(--bg-main)] text-[10px] font-bold text-[var(--text-primary)] py-1 px-2 rounded-lg border border-[var(--border-color)] outline-none appearance-none"
-                                        >
-                                            <option value="">Unassigned</option>
-                                            {deliveryStaff.map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    </div>
+                                {/* Assign to delivery staff */}
+                                <div className="mt-2 pt-2 border-t border-dashed border-[var(--border-color)]">
+                                  <div className="relative">
+                                    <select
+                                      value={order.assigned_to || ''}
+                                      onChange={e => assignOrderToStaff(order.id, e.target.value)}
+                                      className="w-full py-1.5 px-3 border border-[var(--border-color)] rounded-[10px] bg-[var(--input-bg)] text-[11px] font-bold text-[var(--text-primary)] focus:ring-2 focus:ring-orange-500 outline-none appearance-none"
+                                    >
+                                      <option value="">— Assign Delivery Staff —</option>
+                                      {deliveryStaff.filter(s => s.is_active).map(s => (
+                                        <option key={s.id} value={s.id}>{s.name} ({s.phone})</option>
+                                      ))}
+                                    </select>
+                                    <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                  </div>
                                 </div>
 
                                 {/* Row 2: Customer name + phone */}
@@ -1069,84 +1102,161 @@ export const Admin: React.FC = () => {
                 </div>
             </div>
         )}
-        {/* --- DELIVERY TAB --- */}
         {activeTab === 'delivery' && (
-            <div className="space-y-6 animate-fade-in max-w-2xl mx-auto">
-                {/* Add Staff Form */}
-                <div className="bg-[var(--card-bg)] rounded-[24px] shadow-sm border border-[var(--border-color)] p-5">
-                    <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                        <User size={18} className="text-orange-500" /> Add Delivery Staff
-                    </h3>
-                    <form onSubmit={saveDeliveryStaff} className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input 
-                            type="text" 
-                            placeholder="Full Name" 
-                            required
-                            className="w-full p-3 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-sm font-bold outline-none"
-                            value={staffForm.name}
-                            onChange={e => setStaffForm({...staffForm, name: e.target.value})}
-                        />
-                        <input 
-                            type="tel" 
-                            placeholder="Phone Number" 
-                            required
-                            className="w-full p-3 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-sm font-bold outline-none"
-                            value={staffForm.phone}
-                            onChange={e => setStaffForm({...staffForm, phone: e.target.value})}
-                        />
-                        <div className="flex gap-2">
-                            <input 
-                                type="password" 
-                                placeholder="4-6 Digit PIN" 
-                                required
-                                maxLength={6}
-                                className="flex-1 p-3 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-sm font-bold outline-none"
-                                value={staffForm.pin}
-                                onChange={e => setStaffForm({...staffForm, pin: e.target.value})}
-                            />
-                            <button 
-                                type="submit" 
-                                disabled={isSaving}
-                                className="bg-orange-500 text-white px-4 rounded-xl font-bold hover:bg-orange-600 transition-colors disabled:opacity-50"
-                            >
-                                {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+          <div className="space-y-5 animate-fade-in">
 
-                {/* Staff List */}
-                <div className="space-y-3">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-2">Active Staff</h3>
-                    {loadingDelivery ? (
-                        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-orange-500" /></div>
-                    ) : deliveryStaff.length === 0 ? (
-                        <div className="p-10 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)] text-gray-400 text-sm font-medium">
-                            No delivery staff added yet.
-                        </div>
-                    ) : (
-                        deliveryStaff.map(s => (
-                            <div key={s.id} className="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-600">
-                                        <Truck size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-[var(--text-primary)] text-sm">{s.name}</p>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{s.phone}</p>
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={() => deleteDeliveryStaff(s.id)}
-                                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            </div>
-                        ))
-                    )}
+            {/* Live Tracking Section */}
+            <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-[var(--border-color)] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Navigation size={16} className="text-orange-500 animate-pulse" />
+                  <h3 className="font-black text-[var(--text-primary)] text-sm">Live Agent Tracking</h3>
                 </div>
+                <button onClick={loadLiveLocations} className="p-1.5 bg-[var(--bg-main)] rounded-lg border border-[var(--border-color)] text-gray-400 hover:text-[var(--text-primary)] transition-all active:scale-95">
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+              <div className="p-3 space-y-2">
+                {liveLocations.length === 0 ? (
+                  <p className="text-xs text-gray-500 text-center py-4 font-medium">No live locations yet. Agents need to start GPS tracking.</p>
+                ) : (
+                  liveLocations.map(loc => (
+                    <div key={loc.staff_id} className="flex items-center gap-3 p-3 bg-[var(--bg-main)] rounded-[14px] border border-[var(--border-color)]">
+                      <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20 shrink-0 relative">
+                        <Truck size={18} className="text-orange-500" />
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[var(--text-primary)] text-sm">{loc.delivery_staff?.name || 'Agent'}</p>
+                        <p className="text-[10px] text-gray-500 font-mono">{Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}</p>
+                        <p className="text-[9px] text-gray-400 font-bold mt-0.5">
+                          Updated: {new Date(loc.updated_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <a 
+                        href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                        target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1 text-[10px] font-bold text-orange-500 bg-orange-500/10 px-2.5 py-1.5 rounded-lg border border-orange-500/20 hover:bg-orange-500/20 transition-all active:scale-95 shrink-0"
+                      >
+                        <MapPin size={11} /> View
+                      </a>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+
+            {/* Staff Management */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-[var(--text-primary)]">Delivery Staff</h3>
+              <button onClick={() => { setEditingStaff(null); setStaffForm({ name: '', phone: '', pin: '' }); setIsStaffFormOpen(true); }}
+                className="flex items-center gap-2 bg-[var(--primary-btn)] text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md hover:opacity-90 active:scale-95 transition-all">
+                <Plus size={14} /> Add Staff
+              </button>
+            </div>
+
+            {/* Add/Edit Staff Modal */}
+            {isStaffFormOpen && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsStaffFormOpen(false)} />
+                <div className="bg-[var(--card-bg)] w-full max-w-sm rounded-[24px] shadow-2xl relative z-10 p-6 border border-[var(--border-color)] animate-slide-up">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="font-bold text-[var(--text-primary)] text-base">{editingStaff ? 'Edit Staff' : 'Add Delivery Staff'}</h3>
+                    <button onClick={() => setIsStaffFormOpen(false)} className="p-2 hover:bg-[var(--bg-main)] rounded-full transition-colors text-gray-500"><X size={18} /></button>
+                  </div>
+                  <form onSubmit={saveStaff} className="space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Full Name</label>
+                      <input required type="text" value={staffForm.name} onChange={e => setStaffForm({...staffForm, name: e.target.value})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm"
+                        placeholder="e.g. Ramesh Kumar" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Phone Number</label>
+                      <input required type="tel" value={staffForm.phone} onChange={e => setStaffForm({...staffForm, phone: e.target.value})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm"
+                        placeholder="e.g. 9876543210" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Login PIN (4–6 digits)</label>
+                      <input required type="text" maxLength={6} minLength={4} value={staffForm.pin} onChange={e => setStaffForm({...staffForm, pin: e.target.value.replace(/\D/g, '')})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm tracking-widest"
+                        placeholder="e.g. 1234" />
+                    </div>
+                    <button type="submit" disabled={savingStaff}
+                      className="w-full bg-[var(--primary-btn)] text-white py-3 rounded-[12px] font-bold text-sm hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50">
+                      {savingStaff ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                      {editingStaff ? 'Update Staff' : 'Save Staff Member'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Staff Cards */}
+            <div className="space-y-3">
+              {loadingDelivery ? (
+                [1,2].map(i => <div key={i} className="bg-[var(--card-bg)] rounded-[16px] p-4 border border-[var(--border-color)] h-24 skeleton" />)
+              ) : deliveryStaff.length === 0 ? (
+                <div className="p-8 text-center bg-[var(--card-bg)] rounded-[20px] border border-dashed border-[var(--border-color)]">
+                  <Truck size={28} className="text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-[var(--text-primary)]">No delivery staff yet</p>
+                </div>
+              ) : (
+                deliveryStaff.map(member => {
+                  const isLive = liveLocations.some(l => l.staff_id === member.id);
+                  return (
+                    <div key={member.id} className="bg-[var(--card-bg)] rounded-[20px] border border-[var(--border-color)] shadow-sm overflow-hidden">
+                      <div className="p-4 flex items-center gap-3">
+                        <div className="relative shrink-0">
+                          <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center border border-orange-500/20">
+                            <Truck size={22} className="text-orange-500" />
+                          </div>
+                          {isLive && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-[var(--text-primary)] text-sm">{member.name}</p>
+                            {isLive && <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded-full border border-green-500/20">LIVE</span>}
+                          </div>
+                          <p className="text-[11px] text-gray-500 font-medium">{member.phone}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-[10px] text-gray-400 font-mono">PIN: {showPins[member.id] ? member.pin : '•'.repeat(member.pin?.length || 4)}</span>
+                            <button onClick={() => setShowPins(p => ({...p, [member.id]: !p[member.id]}))} className="text-gray-400 hover:text-[var(--text-primary)] transition-colors ml-1">
+                              {showPins[member.id] ? <EyeOff size={11} /> : <Eye size={11} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5 shrink-0">
+                          <button onClick={() => { setEditingStaff(member); setStaffForm({ name: member.name, phone: member.phone, pin: member.pin }); setIsStaffFormOpen(true); }}
+                            className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 border border-blue-500/20 active:scale-95 transition-all">
+                            <Edit3 size={13} />
+                          </button>
+                          <button onClick={() => toggleActiveStaff(member.id, member.is_active)}
+                            className={`p-2 rounded-lg border active:scale-95 transition-all text-[10px] font-bold ${member.is_active ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                            {member.is_active ? '✓' : '✗'}
+                          </button>
+                          <button onClick={() => deleteStaff(member.id)}
+                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 border border-red-500/20 active:scale-95 transition-all">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Assigned Orders count */}
+                      <div className="px-4 pb-3">
+                        <div className="bg-[var(--bg-main)] rounded-xl px-3 py-2 flex items-center justify-between border border-[var(--border-color)]">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Orders</span>
+                          <span className="font-black text-[var(--text-primary)] text-sm">
+                            {orders.filter(o => o.assigned_to === member.id && o.status !== 'delivered').length}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         )}
       </div>
     </AppLayout>

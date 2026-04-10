@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { AppLayout } from '../components/AppLayout';
 import { supabase } from '@/lib/supabase';
-import { Search, AlertCircle, Package, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { 
+  Search, Package, CheckCircle, Clock, 
+  Phone, User, Navigation, Loader2, AlertCircle, IndianRupee 
+} from 'lucide-react';
 import { Order } from '../types';
 
 export const TrackOrder: React.FC = () => {
@@ -9,6 +12,21 @@ export const TrackOrder: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [deliveryStaffMap, setDeliveryStaffMap] = useState<Record<string, any>>({});
+
+  const fetchDeliveryStaff = async () => {
+    if (!supabase) return;
+    const { data } = await supabase.from('delivery_staff').select('id, name, phone');
+    if (data) {
+      const map: Record<string, any> = {};
+      data.forEach(s => map[s.id] = s);
+      setDeliveryStaffMap(map);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchDeliveryStaff();
+  }, []);
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +201,62 @@ export const TrackOrder: React.FC = () => {
                       <span className="font-bold text-[var(--text-primary)]">Total Amount</span>
                       <span className="font-black text-lg text-[#064E3B] dark:text-emerald-400">₹{order.total}</span>
                     </div>
+
+                  {/* Delivery Agent Info */}
+                  {order.assigned_to && deliveryStaffMap[order.assigned_to] && (
+                    <div className="mt-4 p-3 bg-orange-500/5 rounded-xl border border-orange-500/10">
+                      <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-2">Delivery Partner</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center border border-orange-500/20">
+                            <User size={18} className="text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-[var(--text-primary)] text-sm">{deliveryStaffMap[order.assigned_to].name}</p>
+                            <a href={`tel:${deliveryStaffMap[order.assigned_to].phone}`} className="text-[10px] text-blue-500 font-bold flex items-center gap-1">
+                              <Phone size={10} /> {deliveryStaffMap[order.assigned_to].phone}
+                            </a>
+                          </div>
+                        </div>
+                        {order.delivery_lat && (
+                          <a 
+                            href={`https://www.google.com/maps?q=${order.delivery_lat},${order.delivery_lng}`}
+                            target="_blank" rel="noreferrer"
+                            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-2 rounded-lg font-bold text-[10px] shadow-md active:scale-95 transition-all"
+                          >
+                            <Navigation size={12} /> Live Location
+                          </a>
+                        )}
+                      </div>
+                      {order.delivery_updated_at && (
+                        <p className="text-[9px] text-gray-400 font-medium mt-2 text-right">
+                          Last seen: {new Date(order.delivery_updated_at).toLocaleTimeString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Payment Status for Delivered Orders */}
+                  {order.status === 'delivered' && order.payment_status && (
+                    <div className={`mt-3 p-3 rounded-xl border flex items-center gap-3 ${
+                      order.payment_status === 'delayed' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-green-500/5 border-green-500/20'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        order.payment_status === 'delayed' ? 'bg-orange-500/10 text-orange-500' : 'bg-green-500/10 text-green-500'
+                      }`}>
+                        <IndianRupee size={16} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Payment Status</p>
+                        <p className={`text-xs font-black ${
+                          order.payment_status === 'delayed' ? 'text-orange-500' : 'text-green-500'
+                        }`}>
+                          {order.payment_status === 'paid_cash' ? 'Paid in Cash' : 
+                           order.payment_status === 'paid_online' ? 'Paid Online' : 'Payment Delayed'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   </div>
                 </div>
               </div>

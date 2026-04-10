@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from './Link';
-import { Home, ShoppingBag, MapPin, ShoppingCart, User } from 'lucide-react';
+import { Home, ShoppingBag, ShoppingCart, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { motion } from 'motion/react';
 
