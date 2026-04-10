@@ -53,7 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { data, error } = await supabase!.auth.getUser();
         if (error) {
-          console.error("Auth check error:", error);
+          if (error && error.message !== "Auth session missing") {
+            console.error("Auth error:", error.message);
+          }
           if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token')) {
             await supabase!.auth.signOut().catch(console.error);
           }
