@@ -55,9 +55,12 @@ export const Header: React.FC<HeaderProps> = () => {
     <header className="px-4 sticky top-0 z-50 bg-[var(--card-bg)]/70 backdrop-blur-xl border-b border-black/5 dark:border-white/5 pt-safe flex flex-col justify-center transition-colors duration-200">
         <div className="flex items-center justify-between w-full h-[64px]">
             {/* Left: Brand Logo + Name */}
-            <div className="flex items-center gap-4 group cursor-pointer select-none" onClick={() => push('/')}>
+            <div className="flex items-center gap-4 group select-none">
                 {/* Modern Premium Logo */}
-                <div className="relative w-11 h-11 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105">
+                <div 
+                    className="relative w-11 h-11 flex items-center justify-center shrink-0 transition-transform duration-300 hover:scale-105 cursor-pointer"
+                    onClick={() => push('/')}
+                >
                     {/* Glow effect */}
                     <div className="absolute inset-0 bg-emerald-500/20 blur-lg rounded-full" />
                     
@@ -72,7 +75,10 @@ export const Header: React.FC<HeaderProps> = () => {
                 </div>
                 
                 {/* Typography */}
-                <div className="flex flex-col justify-center">
+                <div 
+                    className="flex flex-col justify-center cursor-pointer"
+                    onClick={() => push('/contact')}
+                >
                     <span className="text-[17px] font-bold text-[var(--text-primary)] leading-tight tracking-tight">
                         Nikhil Khad
                     </span>

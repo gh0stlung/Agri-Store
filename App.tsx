@@ -12,6 +12,8 @@ import { MyOrders } from './pages/MyOrders';
 import { Cart } from './pages/Cart';
 import Profile from './pages/Profile';
 import { Developer } from './pages/Developer';
+import { DeliveryLogin } from './pages/DeliveryLogin';
+import { DeliveryDashboard } from './pages/DeliveryDashboard';
 import { AIChatDrawer } from './components/AIChatDrawer';
 import { ScrollToTop } from './components/ScrollToTop';
 import { CartProvider } from './context/CartContext';
@@ -22,6 +24,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminProtectedRoute } from './components/AdminProtectedRoute';
+import { DeliveryProtectedRoute } from './components/DeliveryProtectedRoute';
 
 const AppContent: React.FC = () => {
   return (
@@ -32,6 +35,7 @@ const AppContent: React.FC = () => {
         {/* Login Routes - Public */}
         <Route path="/login" element={<Login />} />
         <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/delivery-login" element={<DeliveryLogin />} />
         
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
@@ -65,6 +69,11 @@ const AppContent: React.FC = () => {
           <AdminProtectedRoute>
             <Developer />
           </AdminProtectedRoute>
+        } />
+        <Route path="/delivery" element={
+          <DeliveryProtectedRoute>
+            <DeliveryDashboard />
+          </DeliveryProtectedRoute>
         } />
         
         {/* Catch-all route */}

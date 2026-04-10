@@ -16,7 +16,6 @@ export const GlobalBottomNav: React.FC<GlobalBottomNavProps> = ({ activePage }) 
     { id: 'catalog', label: 'Shop', icon: ShoppingBag, href: '/catalog' },
     { id: 'cart', label: 'Cart', icon: ShoppingCart, href: '/cart', badge: cart.length },
     { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
-    { id: 'contact', label: 'Visit', icon: MapPin, href: '/contact' },
   ];
 
   return (
