@@ -12,6 +12,7 @@ import { MyOrders } from './pages/MyOrders';
 import { Cart } from './pages/Cart';
 import Profile from './pages/Profile';
 import { Developer } from './pages/Developer';
+import { UserLogin } from './pages/UserLogin';
 import { DeliveryLogin } from './pages/DeliveryLogin';
 import { DeliveryDashboard } from './pages/DeliveryDashboard';
 import { AIChatDrawer } from './components/AIChatDrawer';
@@ -34,6 +35,7 @@ const AppContent: React.FC = () => {
       <Routes>
         {/* Login Routes - Public */}
         <Route path="/login" element={<Login />} />
+        <Route path="/user-login" element={<UserLogin />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/delivery-login" element={<DeliveryLogin />} />
         

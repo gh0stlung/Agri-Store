@@ -6,7 +6,7 @@ import {
   Plus, Trash2, Edit2, Save, X, 
   Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon,
   Search, Calendar, Phone, Clock, AlertTriangle, Loader2,
-  Inbox, User, ArrowLeft
+  Inbox, User, ArrowLeft, Truck
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { AppLayout } from '../components/AppLayout';
@@ -75,15 +75,17 @@ async function getCroppedImg(
 export const Admin: React.FC = () => {
   const { push } = useNavigation();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'updates'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'updates' | 'delivery'>('products');
   
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [updates, setUpdates] = useState<StoreUpdate[]>([]);
+  const [deliveryStaff, setDeliveryStaff] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingUpdates, setLoadingUpdates] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadingDelivery, setLoadingDelivery] = useState(true);
   
   // Forms & Edit State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -102,6 +104,9 @@ export const Admin: React.FC = () => {
   const [productForm, setProductForm] = useState<Partial<Product>>({ 
     name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true, variants: []
   });
+
+  // Delivery Staff Form
+  const [staffForm, setStaffForm] = useState({ name: '', phone: '', pin: '' });
   
   // Update Form
   const [text, setText] = useState('');
@@ -197,8 +202,21 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const loadDeliveryStaff = async () => {
+    try {
+      if (!supabase) return;
+      const { data, error } = await supabase.from('delivery_staff').select('*').order('name', { ascending: true });
+      if (error) throw error;
+      setDeliveryStaff(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDelivery(false);
+    }
+  };
+
   const fetchData = async () => {
-    await Promise.all([loadProducts(), loadOrders(), loadUpdates()]);
+    await Promise.all([loadProducts(), loadOrders(), loadUpdates(), loadDeliveryStaff()]);
   };
 
   // --- HANDLERS ---
@@ -386,6 +404,52 @@ export const Admin: React.FC = () => {
       }
   };
 
+  const assignOrderToStaff = async (orderId: string, staffId: string) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ assigned_to: staffId || null })
+        .eq('id', orderId);
+      
+      if (error) throw error;
+      showToast(staffId ? "Order assigned successfully" : "Assignment removed");
+      setOrders(orders.map(o => o.id === orderId ? { ...o, assigned_to: staffId || null } : o));
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to assign order", "error");
+    }
+  };
+
+  const saveDeliveryStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('delivery_staff').insert([staffForm]);
+      if (error) throw error;
+      showToast("Delivery staff added!");
+      setStaffForm({ name: '', phone: '', pin: '' });
+      loadDeliveryStaff();
+    } catch (err: any) {
+      showToast(err.message, "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteDeliveryStaff = async (id: string) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.from('delivery_staff').delete().eq('id', id);
+      if (error) throw error;
+      showToast("Staff removed");
+      loadDeliveryStaff();
+    } catch (err) {
+      showToast("Failed to delete staff", "error");
+    }
+  };
+
   const resetForms = () => {
     setProductForm({ name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true, variants: [] });
     setEditingId(null);
@@ -531,7 +595,8 @@ export const Admin: React.FC = () => {
             {[
                 { id: 'products', icon: Package, label: 'Products' },
                 { id: 'orders', icon: ShoppingBag, label: 'Orders' },
-                { id: 'updates', icon: Bell, label: 'Updates' }
+                { id: 'updates', icon: Bell, label: 'Updates' },
+                { id: 'delivery', icon: Truck, label: 'Delivery' }
             ].map((tab) => (
                 <button
                     key={tab.id}
@@ -883,6 +948,24 @@ export const Admin: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* Order Assignment */}
+                                <div className="mb-2 flex items-center gap-2">
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Assign To:</span>
+                                    <div className="relative flex-1">
+                                        <select
+                                            value={(order as any).assigned_to || ''}
+                                            onChange={(e) => assignOrderToStaff(order.id, e.target.value)}
+                                            className="w-full bg-[var(--bg-main)] text-[10px] font-bold text-[var(--text-primary)] py-1 px-2 rounded-lg border border-[var(--border-color)] outline-none appearance-none"
+                                        >
+                                            <option value="">Unassigned</option>
+                                            {deliveryStaff.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+
                                 {/* Row 2: Customer name + phone */}
                                 <div className="flex justify-between items-center mb-1.5 text-[11px]">
                                     <div className="flex items-center gap-1 font-bold text-[var(--text-primary)]">
@@ -982,6 +1065,85 @@ export const Admin: React.FC = () => {
                                 </div>
                             ))
                         )
+                    )}
+                </div>
+            </div>
+        )}
+        {/* --- DELIVERY TAB --- */}
+        {activeTab === 'delivery' && (
+            <div className="space-y-6 animate-fade-in max-w-2xl mx-auto">
+                {/* Add Staff Form */}
+                <div className="bg-[var(--card-bg)] rounded-[24px] shadow-sm border border-[var(--border-color)] p-5">
+                    <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                        <User size={18} className="text-orange-500" /> Add Delivery Staff
+                    </h3>
+                    <form onSubmit={saveDeliveryStaff} className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input 
+                            type="text" 
+                            placeholder="Full Name" 
+                            required
+                            className="w-full p-3 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-sm font-bold outline-none"
+                            value={staffForm.name}
+                            onChange={e => setStaffForm({...staffForm, name: e.target.value})}
+                        />
+                        <input 
+                            type="tel" 
+                            placeholder="Phone Number" 
+                            required
+                            className="w-full p-3 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-sm font-bold outline-none"
+                            value={staffForm.phone}
+                            onChange={e => setStaffForm({...staffForm, phone: e.target.value})}
+                        />
+                        <div className="flex gap-2">
+                            <input 
+                                type="password" 
+                                placeholder="4-6 Digit PIN" 
+                                required
+                                maxLength={6}
+                                className="flex-1 p-3 rounded-xl border border-[var(--border-color)] bg-[var(--input-bg)] text-sm font-bold outline-none"
+                                value={staffForm.pin}
+                                onChange={e => setStaffForm({...staffForm, pin: e.target.value})}
+                            />
+                            <button 
+                                type="submit" 
+                                disabled={isSaving}
+                                className="bg-orange-500 text-white px-4 rounded-xl font-bold hover:bg-orange-600 transition-colors disabled:opacity-50"
+                            >
+                                {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Staff List */}
+                <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-2">Active Staff</h3>
+                    {loadingDelivery ? (
+                        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-orange-500" /></div>
+                    ) : deliveryStaff.length === 0 ? (
+                        <div className="p-10 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)] text-gray-400 text-sm font-medium">
+                            No delivery staff added yet.
+                        </div>
+                    ) : (
+                        deliveryStaff.map(s => (
+                            <div key={s.id} className="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex items-center justify-between shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-600">
+                                        <Truck size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-[var(--text-primary)] text-sm">{s.name}</p>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{s.phone}</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => deleteDeliveryStaff(s.id)}
+                                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        ))
                     )}
                 </div>
             </div>
