@@ -7,7 +7,7 @@ import {
   Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon,
   Search, Calendar, Phone, Clock, AlertTriangle, Loader2,
   Inbox, User, ArrowLeft, Truck, MapPin, Navigation, Edit3, Eye, EyeOff,
-  RefreshCw
+  RefreshCw, CheckCircle
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { AppLayout } from '../components/AppLayout';
@@ -130,6 +130,9 @@ export const Admin: React.FC = () => {
 
   useEffect(() => {
     init();
+    // Refresh live locations every 30 seconds
+    const locInterval = setInterval(loadLiveLocations, 30000);
+    return () => clearInterval(locInterval);
   }, []);
 
   useEffect(() => {
@@ -220,15 +223,26 @@ export const Admin: React.FC = () => {
   const loadLiveLocations = async () => {
     if (!supabase) return;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('delivery_locations')
-        .select('*, delivery_staff(name, phone)')
+        .select('*')
         .order('updated_at', { ascending: false });
-      // Get latest per staff
+      
+      if (error) { console.error('location fetch error:', error); return; }
+
+      // Get staff details separately
+      const { data: staffData } = await supabase
+        .from('delivery_staff')
+        .select('id, name, phone');
+      
+      const staffMap: Record<string, any> = {};
+      (staffData || []).forEach(s => { staffMap[s.id] = s; });
+
+      // Get latest location per staff member
       const latest: Record<string, any> = {};
       (data || []).forEach(loc => {
         if (!latest[loc.staff_id] || new Date(loc.updated_at) > new Date(latest[loc.staff_id].updated_at)) {
-          latest[loc.staff_id] = loc;
+          latest[loc.staff_id] = { ...loc, staff: staffMap[loc.staff_id] };
         }
       });
       setLiveLocations(Object.values(latest));
@@ -1033,6 +1047,26 @@ export const Admin: React.FC = () => {
                                         ))}
                                     </div>
                                 </div>
+                                {/* Payment status badge */}
+                                {order.payment_status && (
+                                  <div className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                                    order.payment_status === 'paid_cash' ? 'bg-green-500/10 text-green-600 border-green-500/20' :
+                                    order.payment_status === 'paid_online' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                                    order.payment_status === 'delayed' ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' :
+                                    'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                                  }`}>
+                                    {order.payment_status === 'paid_cash' ? '💵 Cash Paid' :
+                                     order.payment_status === 'paid_online' ? '📱 Online Paid' :
+                                     order.payment_status === 'delayed' ? '⏳ Payment Delayed' : '⏳ Pending'}
+                                  </div>
+                                )}
+                                {/* Delivered time */}
+                                {order.delivered_at && (
+                                  <p className="text-[9px] text-gray-400 mt-0.5 flex items-center gap-1">
+                                    <CheckCircle size={9} className="text-green-500" />
+                                    Delivered: {new Date(order.delivered_at).toLocaleString()}
+                                  </p>
+                                )}
                             </div>
                         ))
                      )
@@ -1118,27 +1152,31 @@ export const Admin: React.FC = () => {
               </div>
               <div className="p-3 space-y-2">
                 {liveLocations.length === 0 ? (
-                  <p className="text-xs text-gray-500 text-center py-4 font-medium">No live locations yet. Agents need to start GPS tracking.</p>
+                  <div className="text-center py-6">
+                    <Navigation size={24} className="text-gray-400 mx-auto mb-2 opacity-30" />
+                    <p className="text-xs text-gray-500 font-medium">No agents tracking yet</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Agents must tap "Start GPS" on their device</p>
+                  </div>
                 ) : (
                   liveLocations.map(loc => (
                     <div key={loc.staff_id} className="flex items-center gap-3 p-3 bg-[var(--bg-main)] rounded-[14px] border border-[var(--border-color)]">
-                      <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20 shrink-0 relative">
-                        <Truck size={18} className="text-orange-500" />
+                      <div className="relative shrink-0">
+                        <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
+                          <Truck size={18} className="text-orange-500" />
+                        </div>
                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-black text-[var(--text-primary)] text-sm">{loc.delivery_staff?.name || 'Agent'}</p>
-                        <p className="text-[10px] text-gray-500 font-mono">{Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}</p>
-                        <p className="text-[9px] text-gray-400 font-bold mt-0.5">
-                          Updated: {new Date(loc.updated_at).toLocaleTimeString()}
-                        </p>
+                        <p className="font-black text-[var(--text-primary)] text-sm">{loc.staff?.name || 'Agent'}</p>
+                        <p className="text-[10px] text-gray-400 font-medium">{loc.staff?.phone}</p>
+                        <p className="text-[9px] font-mono text-gray-500 mt-0.5">{Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}</p>
+                        <p className="text-[9px] text-gray-400 mt-0.5">🕐 {new Date(loc.updated_at).toLocaleTimeString()}</p>
                       </div>
-                      <a 
-                        href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                      <a href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
                         target="_blank" rel="noreferrer"
-                        className="flex items-center gap-1 text-[10px] font-bold text-orange-500 bg-orange-500/10 px-2.5 py-1.5 rounded-lg border border-orange-500/20 hover:bg-orange-500/20 transition-all active:scale-95 shrink-0"
-                      >
-                        <MapPin size={11} /> View
+                        className="shrink-0 flex flex-col items-center gap-1 text-[9px] font-bold text-orange-500 bg-orange-500/10 px-2.5 py-2 rounded-xl border border-orange-500/20 active:scale-95">
+                        <MapPin size={14} />
+                        Track
                       </a>
                     </div>
                   ))

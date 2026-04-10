@@ -25,7 +25,6 @@ export const DeliveryLogin: React.FC = () => {
     setTimeout(() => setShake(false), 500);
   };
 
-  // Preview staff name as PIN is entered (4+ digits)
   React.useEffect(() => {
     const preview = async () => {
       if (pin.length >= 4 && supabase) {
@@ -55,9 +54,8 @@ export const DeliveryLogin: React.FC = () => {
         .eq('pin', pin)
         .eq('is_active', true)
         .single();
-
       if (error || !data) {
-        setError('Invalid PIN. Try again.');
+        setError('Invalid PIN');
         triggerShake();
         setPin('');
         setLoading(false);
@@ -78,105 +76,110 @@ export const DeliveryLogin: React.FC = () => {
     if (pin.length === 6) handleLogin();
   }, [pin]);
 
-  const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
+  const digits = ['1','2','3','4','5','6','7','8','9','','0','del'];
 
   return (
-    <div className="fixed inset-0 bg-[#0a0f1a] flex flex-col items-center justify-center overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-orange-600/5 rounded-full blur-2xl" />
-      </div>
+    <div className="fixed inset-0 bg-[#0a0f1a] flex flex-col overflow-hidden">
+      {/* Glow effects */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-orange-500/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-48 h-48 bg-orange-600/5 rounded-full blur-2xl pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-[320px] flex flex-col items-center">
+      {/* Back button */}
+      <div className="relative z-10 px-5 pt-12 pb-2">
         <button onClick={() => push('/login')}
-          className="self-start mb-8 flex items-center gap-2 text-orange-200/40 hover:text-orange-200/70 transition-colors text-xs font-bold uppercase tracking-widest">
+          className="flex items-center gap-2 text-white/30 hover:text-white/60 transition-colors text-xs font-bold uppercase tracking-widest">
           <ArrowLeft size={14} /> Back
         </button>
+      </div>
 
-        {/* Icon */}
-        <div className="w-20 h-20 bg-orange-500/10 rounded-3xl flex items-center justify-center mb-4 border border-orange-500/20 shadow-[0_0_40px_rgba(251,146,60,0.15)]">
-          <Truck size={36} className="text-orange-400" />
+      {/* Main content - flex grow to fill screen */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-between px-6 pb-8">
+
+        {/* Top section */}
+        <div className="flex flex-col items-center pt-4">
+          <div className="w-16 h-16 bg-orange-500/10 rounded-[20px] flex items-center justify-center border border-orange-500/20 shadow-[0_0_30px_rgba(251,146,60,0.1)] mb-3">
+            <Truck size={30} className="text-orange-400" />
+          </div>
+          <h1 className="text-xl font-black text-white tracking-tight">Delivery Login</h1>
+          <p className="text-orange-200/30 text-[11px] uppercase tracking-widest font-bold mt-1">Enter Your PIN</p>
         </div>
 
-        <h1 className="text-2xl font-black text-white tracking-tight mb-1">Delivery Login</h1>
-        <p className="text-orange-200/40 text-xs uppercase tracking-widest font-bold mb-6">Enter Your PIN</p>
+        {/* Middle section */}
+        <div className="w-full flex flex-col items-center gap-4">
 
-        {/* Staff preview card */}
-        <div className={`w-full mb-4 transition-all duration-300 ${staffInfo ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
-          <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-3 flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
-              <User size={18} className="text-orange-400" />
-            </div>
-            <div>
-              <p className="font-black text-white text-sm">{staffInfo?.name}</p>
-              <p className="text-orange-300/50 text-[10px] font-bold flex items-center gap-1">
-                <Phone size={9} /> {staffInfo?.phone}
-              </p>
-            </div>
-            <div className="ml-auto">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+          {/* Staff preview */}
+          <div className={`w-full transition-all duration-300 ${staffInfo ? 'opacity-100 max-h-20' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+            <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-3 flex items-center gap-3">
+              <div className="w-9 h-9 bg-orange-500/20 rounded-xl flex items-center justify-center shrink-0">
+                <User size={16} className="text-orange-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-black text-white text-sm truncate">{staffInfo?.name}</p>
+                <p className="text-orange-300/50 text-[10px] font-bold flex items-center gap-1">
+                  <Phone size={9} />{staffInfo?.phone}
+                </p>
+              </div>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
             </div>
           </div>
+
+          {/* PIN dots */}
+          <div className={`flex gap-2.5 ${shake ? 'animate-[shake_0.4s_ease]' : ''}`}>
+            {[0,1,2,3,4,5].map(i => (
+              <div key={i} className={`w-11 h-11 rounded-xl border-2 flex items-center justify-center transition-all duration-200 ${
+                i < pin.length
+                  ? 'bg-orange-500 border-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.5)]'
+                  : 'bg-white/5 border-white/10'
+              }`}>
+                {i < pin.length && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+              </div>
+            ))}
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-red-400 text-xs font-bold bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20">
+              {error}
+            </p>
+          )}
         </div>
 
-        {/* PIN dots */}
-        <div className={`flex gap-3 mb-6 ${shake ? 'animate-[shake_0.5s_ease]' : ''}`}>
-          {[0,1,2,3,4,5].map(i => (
-            <div key={i} className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all duration-300 ${
-              i < pin.length ? 'bg-orange-500 border-orange-400 shadow-[0_0_15px_rgba(251,146,60,0.4)]' : 'bg-white/5 border-white/10'
-            }`}>
-              {i < pin.length && <div className="w-3 h-3 bg-white rounded-full" />}
-            </div>
-          ))}
+        {/* Keypad - bottom section */}
+        <div className="w-full space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            {digits.map((d, i) => {
+              if (d === '') return <div key={i} />;
+              if (d === 'del') return (
+                <button key={i} onClick={handleDelete}
+                  className="h-14 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center text-orange-300 hover:bg-white/10 active:scale-95 transition-all">
+                  <Delete size={18} />
+                </button>
+              );
+              return (
+                <button key={i} onClick={() => handleDigit(d)} disabled={loading}
+                  className="h-14 rounded-2xl bg-white/5 border border-white/8 text-white font-black text-xl hover:bg-orange-500/10 hover:border-orange-500/20 active:scale-95 transition-all disabled:opacity-50">
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Login button for 4-5 digit PINs */}
+          {pin.length >= 4 && pin.length < 6 && (
+            <button onClick={handleLogin} disabled={loading}
+              className="w-full bg-orange-500 hover:bg-orange-400 text-black font-black py-4 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,146,60,0.25)]">
+              {loading ? <Loader2 size={18} className="animate-spin" /> : <Truck size={18} />}
+              {loading ? 'Verifying...' : 'Login'}
+            </button>
+          )}
         </div>
-
-        {error && (
-          <p className="text-red-400 text-xs font-bold mb-4 bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20">
-            {error}
-          </p>
-        )}
-
-        {/* Keypad */}
-        <div className="grid grid-cols-3 gap-3 w-full">
-          {digits.map((d, i) => {
-            if (d === '') return <div key={i} />;
-            if (d === 'del') return (
-              <button key={i} onClick={handleDelete}
-                className="h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-orange-300 hover:bg-white/10 active:scale-95 transition-all">
-                <Delete size={20} />
-              </button>
-            );
-            return (
-              <button key={i} onClick={() => handleDigit(d)} disabled={loading}
-                className="h-16 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-xl hover:bg-orange-500/10 hover:border-orange-500/30 active:scale-95 transition-all disabled:opacity-50">
-                {loading && pin.length === 6 ? <Loader2 size={20} className="animate-spin mx-auto" /> : d}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Login button (for < 6 digit PINs) */}
-        {pin.length >= 4 && pin.length < 6 && (
-          <button onClick={handleLogin} disabled={loading}
-            className="mt-4 w-full bg-orange-500 hover:bg-orange-400 text-black font-black py-3.5 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,146,60,0.3)]">
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <Truck size={18} />}
-            {loading ? 'Verifying...' : 'Login'}
-          </button>
-        )}
-
-        <p className="mt-6 text-orange-200/20 text-[10px] font-bold uppercase tracking-widest">
-          Authorized Personnel Only
-        </p>
       </div>
 
       <style>{`
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-8px); }
-          40% { transform: translateX(8px); }
-          60% { transform: translateX(-6px); }
-          80% { transform: translateX(6px); }
+          0%,100%{transform:translateX(0)}
+          25%{transform:translateX(-8px)}
+          75%{transform:translateX(8px)}
         }
       `}</style>
     </div>

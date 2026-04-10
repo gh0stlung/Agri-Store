@@ -40,6 +40,7 @@ export interface Order {
   delivery_updated_at?: string;
   payment_status?: string;
   payment_method?: string;
+  delivered_at?: string;
 }
 
 export interface StoreUpdate {
