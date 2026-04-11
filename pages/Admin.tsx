@@ -113,6 +113,10 @@ export const Admin: React.FC = () => {
   const [showPins, setShowPins] = useState<Record<string, boolean>>({});
   const [liveLocations, setLiveLocations] = useState<any[]>([]);
   
+  // User Management State
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
   // Update Form
   const [text, setText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -169,6 +173,7 @@ export const Admin: React.FC = () => {
 
   const init = async () => {
     await fetchData();
+    loadAllUsers();
   };
 
   const loadProducts = async () => {
@@ -247,6 +252,43 @@ export const Admin: React.FC = () => {
       });
       setLiveLocations(Object.values(latest));
     } catch (err) { console.error(err); }
+  };
+
+  const loadAllUsers = async () => {
+    if (!supabase) return;
+    setLoadingUsers(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (err) {
+      console.error('Error loading users:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const toggleBlockUser = async (userId: string, currentStatus: boolean) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_blocked: !currentStatus })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      setAllUsers(users => users.map(u => 
+        u.id === userId ? { ...u, is_blocked: !currentStatus } : u
+      ));
+      showToast(`User ${!currentStatus ? 'blocked' : 'unblocked'} successfully`, 'success');
+    } catch (err) {
+      console.error('Error toggling block status:', err);
+      showToast('Failed to update user status', 'error');
+    }
   };
 
   const fetchData = async () => {
@@ -1137,45 +1179,63 @@ export const Admin: React.FC = () => {
             </div>
         )}
         {activeTab === 'delivery' && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-4 animate-fade-in pb-10">
 
-            {/* Live Tracking Section */}
-            <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-[var(--border-color)] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Navigation size={16} className="text-orange-500 animate-pulse" />
-                  <h3 className="font-black text-[var(--text-primary)] text-sm">Live Agent Tracking</h3>
+            {/* ── LIVE TRACKING CARD ── */}
+            <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] overflow-hidden shadow-[var(--shadow-soft)]">
+              <div className="px-5 py-4 border-b border-[var(--border-color)] flex items-center justify-between bg-orange-500/5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
+                    <Navigation size={15} className="text-orange-500 animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="font-black text-[var(--text-primary)] text-sm">Live Agent Tracking</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                      {liveLocations.length} agent{liveLocations.length !== 1 ? 's' : ''} active
+                    </p>
+                  </div>
                 </div>
-                <button onClick={loadLiveLocations} className="p-1.5 bg-[var(--bg-main)] rounded-lg border border-[var(--border-color)] text-gray-400 hover:text-[var(--text-primary)] transition-all active:scale-95">
+                <button onClick={loadLiveLocations}
+                  className="p-2 bg-[var(--bg-main)] rounded-xl border border-[var(--border-color)] text-gray-400 hover:text-orange-500 transition-all active:scale-95">
                   <RefreshCw size={14} />
                 </button>
               </div>
-              <div className="p-3 space-y-2">
+
+              <div className="p-4 space-y-2">
                 {liveLocations.length === 0 ? (
-                  <div className="text-center py-6">
-                    <Navigation size={24} className="text-gray-400 mx-auto mb-2 opacity-30" />
-                    <p className="text-xs text-gray-500 font-medium">No agents tracking yet</p>
-                    <p className="text-[10px] text-gray-400 mt-1">Agents must tap "Start GPS" on their device</p>
+                  <div className="text-center py-8">
+                    <div className="w-14 h-14 bg-[var(--bg-main)] rounded-2xl flex items-center justify-center mx-auto mb-3 border border-[var(--border-color)]">
+                      <Navigation size={22} className="text-gray-300 dark:text-gray-600" />
+                    </div>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">No active tracking</p>
+                    <p className="text-[11px] text-gray-400 mt-1 font-medium">Agents must tap "Start GPS" on their device</p>
                   </div>
                 ) : (
                   liveLocations.map(loc => (
-                    <div key={loc.staff_id} className="flex items-center gap-3 p-3 bg-[var(--bg-main)] rounded-[14px] border border-[var(--border-color)]">
+                    <div key={loc.staff_id} className="flex items-center gap-3 p-3.5 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-color)] hover:border-orange-500/20 transition-all">
                       <div className="relative shrink-0">
-                        <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
-                          <Truck size={18} className="text-orange-500" />
+                        <div className="w-11 h-11 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
+                          <Truck size={20} className="text-orange-500" />
                         </div>
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse" />
+                        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-black text-[var(--text-primary)] text-sm">{loc.staff?.name || 'Agent'}</p>
-                        <p className="text-[10px] text-gray-400 font-medium">{loc.staff?.phone}</p>
-                        <p className="text-[9px] font-mono text-gray-500 mt-0.5">{Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}</p>
-                        <p className="text-[9px] text-gray-400 mt-0.5">🕐 {new Date(loc.updated_at).toLocaleTimeString()}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-black text-[var(--text-primary)] text-sm truncate">{loc.staff?.name || 'Agent'}</p>
+                          <span className="text-[8px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded-full border border-green-500/20 shrink-0">LIVE</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 font-medium mt-0.5">{loc.staff?.phone}</p>
+                        <p className="text-[9px] font-mono text-gray-400 mt-0.5">
+                          {Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}
+                        </p>
+                        <p className="text-[9px] text-gray-400 mt-0.5 flex items-center gap-1">
+                          <Clock size={8} /> Updated {new Date(loc.updated_at).toLocaleTimeString()}
+                        </p>
                       </div>
                       <a href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
                         target="_blank" rel="noreferrer"
-                        className="shrink-0 flex flex-col items-center gap-1 text-[9px] font-bold text-orange-500 bg-orange-500/10 px-2.5 py-2 rounded-xl border border-orange-500/20 active:scale-95">
-                        <MapPin size={14} />
+                        className="shrink-0 flex flex-col items-center gap-1 text-[9px] font-black text-orange-500 bg-orange-500/10 px-3 py-2.5 rounded-xl border border-orange-500/20 hover:bg-orange-500/20 active:scale-95 transition-all">
+                        <MapPin size={16} />
                         Track
                       </a>
                     </div>
@@ -1184,116 +1244,306 @@ export const Admin: React.FC = () => {
               </div>
             </div>
 
-            {/* Staff Management */}
+            {/* ── DELIVERY STAFF HEADER ── */}
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-[var(--text-primary)]">Delivery Staff</h3>
-              <button onClick={() => { setEditingStaff(null); setStaffForm({ name: '', phone: '', pin: '' }); setIsStaffFormOpen(true); }}
-                className="flex items-center gap-2 bg-[var(--primary-btn)] text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md hover:opacity-90 active:scale-95 transition-all">
+              <div>
+                <h3 className="font-black text-[var(--text-primary)] text-base">Delivery Staff</h3>
+                <p className="text-[10px] text-gray-400 font-medium mt-0.5">{deliveryStaff.length} member{deliveryStaff.length !== 1 ? 's' : ''} registered</p>
+              </div>
+              <button
+                onClick={() => { setEditingStaff(null); setStaffForm({ name: '', phone: '', pin: '' }); setIsStaffFormOpen(true); }}
+                className="flex items-center gap-2 bg-[var(--primary-btn)] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md hover:opacity-90 active:scale-95 transition-all">
                 <Plus size={14} /> Add Staff
               </button>
             </div>
 
-            {/* Add/Edit Staff Modal */}
+            {/* ── ADD/EDIT STAFF MODAL ── */}
             {isStaffFormOpen && (
               <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsStaffFormOpen(false)} />
-                <div className="bg-[var(--card-bg)] w-full max-w-sm rounded-[24px] shadow-2xl relative z-10 p-6 border border-[var(--border-color)] animate-slide-up">
-                  <div className="flex items-center justify-between mb-5">
-                    <h3 className="font-bold text-[var(--text-primary)] text-base">{editingStaff ? 'Edit Staff' : 'Add Delivery Staff'}</h3>
-                    <button onClick={() => setIsStaffFormOpen(false)} className="p-2 hover:bg-[var(--bg-main)] rounded-full transition-colors text-gray-500"><X size={18} /></button>
+                <div className="bg-[var(--card-bg)] w-full max-w-sm rounded-[28px] shadow-2xl relative z-10 border border-[var(--border-color)] overflow-hidden animate-slide-up">
+                  {/* Modal header */}
+                  <div className="px-6 pt-6 pb-4 border-b border-[var(--border-color)] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
+                        <Truck size={16} className="text-orange-500" />
+                      </div>
+                      <h3 className="font-black text-[var(--text-primary)] text-base">
+                        {editingStaff ? 'Edit Staff Member' : 'Add Delivery Staff'}
+                      </h3>
+                    </div>
+                    <button onClick={() => setIsStaffFormOpen(false)}
+                      className="p-2 hover:bg-[var(--bg-main)] rounded-xl transition-colors text-gray-400">
+                      <X size={18} />
+                    </button>
                   </div>
-                  <form onSubmit={saveStaff} className="space-y-3">
+                  <form onSubmit={saveStaff} className="p-6 space-y-4">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Full Name</label>
-                      <input required type="text" value={staffForm.name} onChange={e => setStaffForm({...staffForm, name: e.target.value})}
-                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm"
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">Full Name</label>
+                      <input required type="text" value={staffForm.name}
+                        onChange={e => setStaffForm({...staffForm, name: e.target.value})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[14px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm transition-all"
                         placeholder="e.g. Ramesh Kumar" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Phone Number</label>
-                      <input required type="tel" value={staffForm.phone} onChange={e => setStaffForm({...staffForm, phone: e.target.value})}
-                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm"
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">Phone Number</label>
+                      <input required type="tel" value={staffForm.phone}
+                        onChange={e => setStaffForm({...staffForm, phone: e.target.value})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[14px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm transition-all"
                         placeholder="e.g. 9876543210" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Login PIN (4–6 digits)</label>
-                      <input required type="text" maxLength={6} minLength={4} value={staffForm.pin} onChange={e => setStaffForm({...staffForm, pin: e.target.value.replace(/\D/g, '')})}
-                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm tracking-widest"
-                        placeholder="e.g. 1234" />
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">Login PIN (4–6 digits)</label>
+                      <input required type="text" maxLength={6} minLength={4} value={staffForm.pin}
+                        onChange={e => setStaffForm({...staffForm, pin: e.target.value.replace(/\D/g, '')})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[14px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-black text-[var(--text-primary)] text-base tracking-[0.5em] transition-all text-center"
+                        placeholder="••••" />
+                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 ml-1 text-center">This PIN is used to login and exit the delivery dashboard</p>
                     </div>
                     <button type="submit" disabled={savingStaff}
-                      className="w-full bg-[var(--primary-btn)] text-white py-3 rounded-[12px] font-bold text-sm hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50">
+                      className="w-full bg-[var(--primary-btn)] text-white py-3.5 rounded-[14px] font-black text-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-md">
                       {savingStaff ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                      {editingStaff ? 'Update Staff' : 'Save Staff Member'}
+                      {editingStaff ? 'Update Staff Member' : 'Add Staff Member'}
                     </button>
                   </form>
                 </div>
               </div>
             )}
 
-            {/* Staff Cards */}
+            {/* ── STAFF CARDS ── */}
             <div className="space-y-3">
               {loadingDelivery ? (
-                [1,2].map(i => <div key={i} className="bg-[var(--card-bg)] rounded-[16px] p-4 border border-[var(--border-color)] h-24 skeleton" />)
+                [1,2].map(i => (
+                  <div key={i} className="bg-[var(--card-bg)] rounded-[20px] border border-[var(--border-color)] h-32 skeleton" />
+                ))
               ) : deliveryStaff.length === 0 ? (
-                <div className="p-8 text-center bg-[var(--card-bg)] rounded-[20px] border border-dashed border-[var(--border-color)]">
-                  <Truck size={28} className="text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm font-bold text-[var(--text-primary)]">No delivery staff yet</p>
+                <div className="p-10 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)]">
+                  <Truck size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="font-bold text-[var(--text-primary)] text-sm">No delivery staff yet</p>
+                  <p className="text-xs text-gray-500 mt-1">Add your first delivery agent above</p>
                 </div>
               ) : (
                 deliveryStaff.map(member => {
                   const isLive = liveLocations.some(l => l.staff_id === member.id);
+                  const activeOrderCount = orders.filter(o => o.assigned_to === member.id && o.status !== 'delivered').length;
+                  const liveData = liveLocations.find(l => l.staff_id === member.id);
+
                   return (
-                    <div key={member.id} className="bg-[var(--card-bg)] rounded-[20px] border border-[var(--border-color)] shadow-sm overflow-hidden">
+                    <div key={member.id} className={`bg-[var(--card-bg)] rounded-[24px] border overflow-hidden shadow-[var(--shadow-soft)] transition-all ${
+                      isLive ? 'border-orange-500/20 shadow-[0_4px_20px_rgba(251,146,60,0.08)]' : 'border-[var(--border-color)]'
+                    }`}>
+                      {/* Staff Header */}
                       <div className="p-4 flex items-center gap-3">
                         <div className="relative shrink-0">
-                          <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center border border-orange-500/20">
-                            <Truck size={22} className="text-orange-500" />
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${
+                            isLive ? 'bg-orange-500/10 border-orange-500/20' : 'bg-[var(--bg-main)] border-[var(--border-color)]'
+                          }`}>
+                            <Truck size={24} className={isLive ? 'text-orange-500' : 'text-gray-400'} />
                           </div>
-                          {isLive && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse" />}
+                          {isLive && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                          )}
                         </div>
+
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-black text-[var(--text-primary)] text-sm">{member.name}</p>
-                            {isLive && <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded-full border border-green-500/20">LIVE</span>}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-black text-[var(--text-primary)] text-base">{member.name}</p>
+                            {isLive && (
+                              <span className="text-[9px] font-black text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                                🟢 LIVE
+                              </span>
+                            )}
+                            {!member.is_active && (
+                              <span className="text-[9px] font-black text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                                INACTIVE
+                              </span>
+                            )}
                           </div>
-                          <p className="text-[11px] text-gray-500 font-medium">{member.phone}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-[10px] text-gray-400 font-mono">PIN: {showPins[member.id] ? member.pin : '•'.repeat(member.pin?.length || 4)}</span>
-                            <button onClick={() => setShowPins(p => ({...p, [member.id]: !p[member.id]}))} className="text-gray-400 hover:text-[var(--text-primary)] transition-colors ml-1">
-                              {showPins[member.id] ? <EyeOff size={11} /> : <Eye size={11} />}
+                          <p className="text-xs text-gray-500 font-medium mt-0.5">{member.phone}</p>
+
+                          {/* PIN with toggle */}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[10px] text-gray-400 font-mono bg-[var(--bg-main)] px-2 py-0.5 rounded border border-[var(--border-color)]">
+                              PIN: {showPins[member.id] ? member.pin : '•'.repeat(member.pin?.length || 4)}
+                            </span>
+                            <button onClick={() => setShowPins(p => ({...p, [member.id]: !p[member.id]}))}
+                              className="text-gray-400 hover:text-[var(--text-primary)] transition-colors">
+                              {showPins[member.id] ? <EyeOff size={12} /> : <Eye size={12} />}
                             </button>
                           </div>
                         </div>
+
+                        {/* Action buttons */}
                         <div className="flex flex-col gap-1.5 shrink-0">
-                          <button onClick={() => { setEditingStaff(member); setStaffForm({ name: member.name, phone: member.phone, pin: member.pin }); setIsStaffFormOpen(true); }}
-                            className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 border border-blue-500/20 active:scale-95 transition-all">
-                            <Edit3 size={13} />
+                          <button
+                            onClick={() => { setEditingStaff(member); setStaffForm({ name: member.name, phone: member.phone, pin: member.pin }); setIsStaffFormOpen(true); }}
+                            className="p-2 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500/20 border border-blue-500/20 active:scale-95 transition-all"
+                            title="Edit">
+                            <Edit3 size={14} />
                           </button>
                           <button onClick={() => toggleActiveStaff(member.id, member.is_active)}
-                            className={`p-2 rounded-lg border active:scale-95 transition-all text-[10px] font-bold ${member.is_active ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
-                            {member.is_active ? '✓' : '✗'}
+                            className={`p-2 rounded-xl border active:scale-95 transition-all ${
+                              member.is_active
+                                ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20'
+                                : 'bg-gray-500/10 text-gray-400 border-gray-500/20 hover:bg-gray-500/20'
+                            }`}
+                            title={member.is_active ? 'Deactivate' : 'Activate'}>
+                            {member.is_active ? <CheckCircle size={14} /> : <X size={14} />}
                           </button>
                           <button onClick={() => deleteStaff(member.id)}
-                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 border border-red-500/20 active:scale-95 transition-all">
-                            <Trash2 size={13} />
+                            className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 border border-red-500/20 active:scale-95 transition-all"
+                            title="Delete">
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
-                      {/* Assigned Orders count */}
-                      <div className="px-4 pb-3">
-                        <div className="bg-[var(--bg-main)] rounded-xl px-3 py-2 flex items-center justify-between border border-[var(--border-color)]">
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Orders</span>
-                          <span className="font-black text-[var(--text-primary)] text-sm">
-                            {orders.filter(o => o.assigned_to === member.id && o.status !== 'delivered').length}
-                          </span>
+
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-3 gap-0 border-t border-[var(--border-color)]">
+                        <div className="px-4 py-3 text-center border-r border-[var(--border-color)]">
+                          <p className="font-black text-[var(--text-primary)] text-lg">{activeOrderCount}</p>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Active</p>
+                        </div>
+                        <div className="px-4 py-3 text-center border-r border-[var(--border-color)]">
+                          <p className="font-black text-[var(--text-primary)] text-lg">
+                            {orders.filter(o => o.assigned_to === member.id).length}
+                          </p>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Total</p>
+                        </div>
+                        <div className="px-4 py-3 text-center">
+                          <p className={`font-black text-lg ${isLive ? 'text-green-500' : 'text-gray-400'}`}>
+                            {isLive ? '●' : '○'}
+                          </p>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">GPS</p>
                         </div>
                       </div>
+
+                      {/* Live location bar */}
+                      {isLive && liveData && (
+                        <div className="px-4 py-3 bg-orange-500/5 border-t border-orange-500/10 flex items-center justify-between">
+                          <div>
+                            <p className="text-[9px] font-black text-orange-500 uppercase tracking-wider">Live Location</p>
+                            <p className="text-[10px] font-mono text-gray-400 mt-0.5">
+                              {Number(liveData.lat).toFixed(4)}, {Number(liveData.lng).toFixed(4)}
+                            </p>
+                            <p className="text-[9px] text-gray-400 mt-0.5">
+                              Updated: {new Date(liveData.updated_at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          <a href={`https://www.google.com/maps?q=${liveData.lat},${liveData.lng}`}
+                            target="_blank" rel="noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-black text-orange-500 bg-orange-500/10 px-3 py-2 rounded-xl border border-orange-500/20 active:scale-95 transition-all">
+                            <MapPin size={13} /> Open Map
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Assigned orders preview */}
+                      {activeOrderCount > 0 && (
+                        <div className="px-4 pb-4 border-t border-[var(--border-color)] pt-3">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-2">Assigned Orders</p>
+                          <div className="space-y-1.5">
+                            {orders
+                              .filter(o => o.assigned_to === member.id && o.status !== 'delivered')
+                              .slice(0, 3)
+                              .map(o => (
+                                <div key={o.id} className="flex items-center justify-between bg-[var(--bg-main)] rounded-xl px-3 py-2 border border-[var(--border-color)]">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-[9px] font-mono text-gray-400">#{o.id.slice(0,6).toUpperCase()}</span>
+                                    <span className="text-xs font-bold text-[var(--text-primary)] truncate">{o.customer_name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {o.payment_status && (
+                                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                                        o.payment_status === 'paid_cash' ? 'text-green-600 bg-green-500/10' :
+                                        o.payment_status === 'paid_online' ? 'text-blue-600 bg-blue-500/10' :
+                                        o.payment_status === 'delayed' ? 'text-orange-600 bg-orange-500/10' :
+                                        'text-gray-500 bg-gray-500/10'
+                                      }`}>
+                                        {o.payment_status === 'paid_cash' ? '💵' : o.payment_status === 'paid_online' ? '📱' : o.payment_status === 'delayed' ? '⏳' : '⏳'}
+                                      </span>
+                                    )}
+                                    <span className="font-black text-[var(--text-primary)] text-xs">₹{o.total}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            {activeOrderCount > 3 && (
+                              <p className="text-[10px] text-gray-400 font-medium text-center">+{activeOrderCount - 3} more orders</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })
               )}
             </div>
+
+            {/* ── USER ACCESS CONTROL ── */}
+            <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] overflow-hidden shadow-[var(--shadow-soft)]">
+              <div className="px-5 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
+                    <User size={15} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-black text-[var(--text-primary)] text-sm">User Access Control</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Block / unblock users</p>
+                  </div>
+                </div>
+                <button onClick={loadAllUsers}
+                  className="p-2 bg-[var(--bg-main)] rounded-xl border border-[var(--border-color)] text-gray-400 hover:text-blue-500 transition-all active:scale-95">
+                  <RefreshCw size={13} />
+                </button>
+              </div>
+              <div className="p-4 space-y-2">
+                {loadingUsers ? (
+                  [1,2,3].map(i => <div key={i} className="h-14 bg-[var(--bg-main)] rounded-[14px] skeleton border border-[var(--border-color)]" />)
+                ) : allUsers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <User size={24} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-[var(--text-primary)]">No users yet</p>
+                  </div>
+                ) : (
+                  allUsers.map(u => (
+                    <div key={u.id} className="flex items-center gap-3 p-3 bg-[var(--bg-main)] rounded-[16px] border border-[var(--border-color)] hover:border-blue-500/10 transition-all">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                        u.is_blocked
+                          ? 'bg-red-500/10 border-red-500/20'
+                          : 'bg-emerald-500/10 border-emerald-500/20'
+                      }`}>
+                        <User size={16} className={u.is_blocked ? 'text-red-500' : 'text-emerald-500'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[var(--text-primary)] text-sm truncate">{u.name || 'Anonymous'}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{u.mobile || 'No phone'}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                          u.is_blocked
+                            ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                        }`}>
+                          {u.is_blocked ? 'Blocked' : 'Active'}
+                        </span>
+                        {/* Toggle switch */}
+                        <button onClick={() => toggleBlockUser(u.id, u.is_blocked || false)}
+                          className={`relative w-12 h-6 rounded-full border transition-all duration-300 ${
+                            u.is_blocked
+                              ? 'bg-red-500/20 border-red-500/30'
+                              : 'bg-emerald-500/20 border-emerald-500/30'
+                          }`}>
+                          <div className={`absolute top-0.5 w-5 h-5 rounded-full shadow-sm transition-all duration-300 ${
+                            u.is_blocked ? 'left-0.5 bg-red-500' : 'left-[26px] bg-emerald-500'
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
           </div>
         )}
       </div>
