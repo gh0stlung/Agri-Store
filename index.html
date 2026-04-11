@@ -158,11 +158,18 @@
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
     <script>
-      // Ensure PWA starts at home page on launch
+      // Ensure PWA starts at home page on launch, UNLESS delivery is locked
       if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-        if (window.location.pathname !== '/' && !sessionStorage.getItem('pwa_launched')) {
+        if (!sessionStorage.getItem('pwa_launched')) {
           sessionStorage.setItem('pwa_launched', 'true');
-          window.location.href = '/';
+          const isDeliveryLocked = localStorage.getItem('nnkb_delivery_locked');
+          if (isDeliveryLocked) {
+            if (window.location.pathname !== '/delivery') {
+              window.location.href = '/delivery';
+            }
+          } else if (window.location.pathname !== '/') {
+            window.location.href = '/';
+          }
         }
       }
     </script>

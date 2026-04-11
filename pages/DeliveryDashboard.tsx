@@ -193,7 +193,7 @@ export const DeliveryDashboard: React.FC = () => {
       setTimeout(() => { setExitShake(false); setExitError(''); }, 1000);
       setExitPin('');
     }
-  }, []);
+  }, [replace]);
 
   // FIX: auto-verify when PIN length matches staff pin length (works for 4, 5, OR 6 digit PINs)
   useEffect(() => {

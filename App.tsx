@@ -28,6 +28,16 @@ import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import { DeliveryProtectedRoute } from './components/DeliveryProtectedRoute';
 
 const AppContent: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const isDeliveryLocked = localStorage.getItem('nnkb_delivery_locked');
+    if (isDeliveryLocked && location.pathname !== '/delivery') {
+      navigate('/delivery', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
   return (
     <div className="max-w-md mx-auto relative min-h-screen-safe bg-[var(--bg-main)] shadow-2xl flex flex-col overflow-x-hidden">
       <ScrollToTop />
