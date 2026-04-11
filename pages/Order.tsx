@@ -3,71 +3,54 @@ import { useNavigation } from '../context/NavigationContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, Loader2, MapPin, User, Phone, Package, ShoppingBag } from 'lucide-react';
+import {
+  CheckCircle, Loader2, MapPin, User, Phone,
+  ShoppingBag, ArrowRight, Tag,
+  Edit2, Banknote, Smartphone, ChevronDown, ChevronUp,
+  Store, Clock
+} from 'lucide-react';
 import { Link } from '../components/Link';
-
 import { AppLayout } from '../components/AppLayout';
 
 export const Order: React.FC = () => {
   const { push } = useNavigation();
   const { cart, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    mobile: '',
-    address: ''
-  });
+
+  const [formData, setFormData] = useState({ name: '', mobile: '', address: '' });
   const [profile, setProfile] = useState<any>(null);
   const [useSavedProfile, setUseSavedProfile] = useState(false);
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
+  const [showItems, setShowItems] = useState(true);
+  const [editingDetails, setEditingDetails] = useState(false);
 
-  // Redirect if cart is empty and not completed
+  const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
+
   useEffect(() => {
-    if (cart.length === 0 && !orderComplete) {
-      push('/catalog');
-    }
+    if (cart.length === 0 && !orderComplete) push('/catalog');
   }, [cart, orderComplete, push]);
 
-  // Fetch profile and pre-fill form
   useEffect(() => {
     const fetchProfile = async () => {
       if (user && supabase) {
-        // Check local storage first for fast auto-fill
-        const localProfile = localStorage.getItem(`profile_${user.id}`);
-        if (localProfile) {
+        const local = localStorage.getItem(`profile_${user.id}`);
+        if (local) {
           try {
-            const parsed = JSON.parse(localProfile);
-            if (parsed.name || parsed.mobile || parsed.address) {
-              setProfile(parsed);
-              setFormData({
-                name: parsed.name || '',
-                mobile: parsed.mobile || '',
-                address: parsed.address || ''
-              });
+            const p = JSON.parse(local);
+            if (p.name || p.mobile || p.address) {
+              setProfile(p);
+              setFormData({ name: p.name || '', mobile: p.mobile || '', address: p.address || '' });
               setUseSavedProfile(true);
             }
           } catch(e) {}
         }
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (data && !error) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (data) {
           setProfile(data);
-          setFormData({
-            name: data.name || '',
-            mobile: data.mobile || '',
-            address: data.address || ''
-          });
-          if (data.name || data.mobile || data.address) {
-            setUseSavedProfile(true);
-          }
+          setFormData({ name: data.name || '', mobile: data.mobile || '', address: data.address || '' });
+          if (data.name || data.mobile || data.address) setUseSavedProfile(true);
           localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
         }
       }
@@ -77,212 +60,338 @@ export const Order: React.FC = () => {
 
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cart || cart.length === 0) return;
+    if (!supabase) return;
+    setLoading(true);
     try {
-      if (!cart || cart.length === 0) {
-        alert("Cart empty");
-        return;
-      }
-
-      if (!supabase) throw new Error('Supabase not initialized');
-      const { data } = await supabase.auth.getUser();
-
-      if (!data.user) {
-        alert("Login required");
-        window.location.href = "/login";
-        return;
-      }
-
-      setLoading(true);
-      const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-
-      const { data: orderData, error } = await supabase.from("orders").insert([
-        {
-          user_id: data.user.id,
-          customer_name: formData.name || profile?.name || "Guest",
-          phone: formData.mobile || profile?.mobile || "",
-          address: formData.address || profile?.address || "",
-          items: cart,
-          total: total,
-          status: "pending"
-        },
-      ]).select().single();
-
-      if (error) {
-        alert("❌ Order failed: " + error.message);
-        return;
-      }
-
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) { push('/login'); return; }
+      const { data: orderData, error } = await supabase.from('orders').insert([{
+        user_id: authData.user.id,
+        customer_name: formData.name || profile?.name || 'Guest',
+        phone: formData.mobile || profile?.mobile || '',
+        address: formData.address || profile?.address || '',
+        items: cart,
+        total: cartTotal,
+        status: 'pending'
+      }]).select().single();
+      if (error) { alert('Order failed: ' + error.message); return; }
       if (orderData) setConfirmedOrderId(orderData.id);
-
-      alert("✅ Order saved in database");
       setOrderComplete(true);
       clearCart();
-
     } catch (err) {
-      alert("Error placing order");
+      alert('Error placing order');
     } finally {
       setLoading(false);
     }
   };
 
+  // ── SUCCESS PAGE ──
   if (orderComplete) {
     return (
-      <div className="min-h-[100dvh] bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
-        {/* Confetti / Decoration Background */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-            <div className="absolute top-10 left-10 text-emerald-500/20 opacity-20"><ShoppingBag size={64} /></div>
-            <div className="absolute bottom-20 right-10 text-emerald-500/20 opacity-20"><Package size={80} /></div>
-        </div>
+      <div className="fixed inset-0 bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 w-full max-w-sm">
+          {/* Success animation */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 mb-4 border border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.2)]">
+              <CheckCircle size={48} strokeWidth={2} />
+            </div>
+            <h2 className="text-3xl font-black text-[var(--text-primary)] font-serif text-center mb-1">Order Placed!</h2>
+            <p className="text-gray-500 text-sm text-center font-medium">Thank you, {formData.name}! 🎉</p>
+          </div>
 
-        <div className="bg-[var(--card-bg)] p-8 rounded-[32px] shadow-[var(--shadow-premium)] border border-[var(--border-color)] max-w-sm w-full relative z-10">
-            <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 mb-6 mx-auto shadow-inner">
-            <CheckCircle size={48} strokeWidth={3} />
+          {/* Order details card */}
+          <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[var(--shadow-premium)] overflow-hidden mb-4">
+            <div className="bg-emerald-500/5 px-5 py-4 border-b border-[var(--border-color)]">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Order ID</p>
+              <p className="font-mono font-black text-[var(--text-primary)] text-lg">{confirmedOrderId.slice(0,8).toUpperCase()}</p>
             </div>
-            <h2 className="text-2xl font-black text-[var(--text-primary)] font-serif mb-2">Order Placed!</h2>
-            <p className="text-[var(--text-body)] mb-6 font-medium text-sm opacity-80">Thank you, {formData.name}.<br/>Your order has been successfully placed.</p>
-            
-            <div className="bg-emerald-500/10 rounded-xl p-4 mb-6 border border-emerald-500/20">
-                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Order ID: {confirmedOrderId.slice(0, 8).toUpperCase()}</p>
-                <p className="text-[10px] text-[var(--text-body)] opacity-70 leading-relaxed">
-                    You can track your order status anytime using your mobile number <strong>{formData.mobile}</strong>.
-                </p>
-                <Link href="/track" className="mt-3 block bg-[var(--card-bg)] text-emerald-600 dark:text-emerald-400 text-xs font-bold py-2 rounded-lg shadow-sm border border-[var(--border-color)] hover:opacity-80 transition-colors">
-                    Track Order Now
-                </Link>
+            <div className="p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                  <Phone size={14} className="text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Mobile</p>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{formData.mobile}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                  <MapPin size={14} className="text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Delivery To</p>
+                  <p className="text-sm font-bold text-[var(--text-primary)] leading-snug">{formData.address}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                  <Banknote size={14} className="text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Payment</p>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">Pay on Delivery • ₹{cartTotal.toFixed(2)}</p>
+                </div>
+              </div>
             </div>
-            
-            <button 
-                onClick={() => push('/')}
-                className="bg-[var(--primary-btn)] text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:opacity-90 active:scale-95 transition-all w-full"
-            >
-                Back to Home
+          </div>
+
+          {/* Track + Home buttons */}
+          <div className="space-y-2">
+            <Link href="/track"
+              className="w-full flex items-center justify-center gap-2 bg-[var(--primary-btn)] text-white py-4 rounded-[18px] font-black shadow-lg hover:opacity-90 active:scale-[0.98] transition-all text-sm">
+              Track My Order <ArrowRight size={16} />
+            </Link>
+            <button onClick={() => push('/')}
+              className="w-full py-3.5 rounded-[18px] font-bold text-sm text-gray-500 bg-[var(--card-bg)] border border-[var(--border-color)] hover:opacity-80 active:scale-[0.98] transition-all">
+              Back to Home
             </button>
+          </div>
         </div>
       </div>
     );
   }
 
+  // ── CHECKOUT PAGE ──
   return (
     <AppLayout activePage="catalog" pageTitle="Checkout">
-      <div className="max-w-md mx-auto">
-        {/* Order Summary Card */}
-        <div className="bg-[var(--card-bg)] rounded-[24px] shadow-[var(--shadow-soft)] border border-[var(--border-color)] p-5 mb-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-[var(--primary-btn)]"></div>
-          <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                  <ShoppingBag size={16} /> Order Summary
-              </h3>
-              <span className="text-xs font-bold text-gray-400">{cart.length} items</span>
-          </div>
-          
-          <div className="space-y-3 mb-5 max-h-40 overflow-y-auto pr-1 scrollbar-hide">
-            {cart.map((item) => (
-              <div key={item.id} className="flex justify-between items-center text-sm py-1 border-b border-dashed border-[var(--border-color)] last:border-0">
-                <div className="flex items-center gap-3">
-                    <span className="font-bold text-[var(--text-primary)] bg-[var(--input-bg)] w-6 h-6 flex items-center justify-center rounded-[6px] text-xs shadow-sm border border-[var(--border-color)]">{item.quantity}</span>
-                    <div className="flex flex-col">
-                        <span className="text-[var(--text-body)] font-bold line-clamp-1">{item.name}</span>
-                        <span className="text-[10px] text-gray-400">{item.unit || 'unit'}</span>
-                    </div>
-                </div>
-                <span className="font-bold text-[var(--text-primary)]">₹{item.price * item.quantity}</span>
+      <div className="max-w-md mx-auto pb-40 space-y-4">
+
+        {/* STEP 1 — Order Items */}
+        <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[var(--shadow-soft)] overflow-hidden">
+          {/* Header */}
+          <button
+            onClick={() => setShowItems(!showItems)}
+            className="w-full flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)]">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                <ShoppingBag size={14} className="text-emerald-600" />
               </div>
-            ))}
-          </div>
-          
-          <div className="bg-[var(--input-bg)] rounded-[16px] p-3 flex justify-between items-center border border-[var(--border-color)]">
-            <span className="font-bold text-gray-500 text-sm">Total Payable</span>
-            <span className="text-xl font-black text-[var(--text-primary)]">₹{cartTotal}</span>
+              <div className="text-left">
+                <p className="font-black text-[var(--text-primary)] text-sm">Your Items</p>
+                <p className="text-[10px] text-gray-400 font-medium">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+            {showItems ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+          </button>
+
+          {showItems && (
+            <div className="divide-y divide-[var(--border-color)]">
+              {cart.map(item => (
+                <div key={item.cartItemId || item.id} className="flex gap-3 px-4 py-3">
+                  {/* Image */}
+                  <div className="w-14 h-14 bg-[var(--input-bg)] rounded-xl overflow-hidden shrink-0 border border-[var(--border-color)]">
+                    {item.image_url
+                      ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={16} className="text-gray-300" /></div>
+                    }
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-[var(--text-primary)] text-xs leading-tight line-clamp-2 font-serif">{item.name}</p>
+                    {item.variant_label && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded-full mt-0.5">
+                        <Tag size={7} />{item.variant_label}
+                      </span>
+                    )}
+                    <div className="flex items-center justify-between mt-1.5">
+                      <p className="text-[10px] text-gray-500 font-medium">
+                        ₹{item.price} × {item.quantity}
+                      </p>
+                      <p className="font-black text-[var(--text-secondary)] text-sm">
+                        ₹{(item.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Total breakdown */}
+          <div className="px-5 py-4 bg-[var(--input-bg)] border-t border-[var(--border-color)] space-y-2">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span className="font-medium">Subtotal</span>
+              <span className="font-bold">₹{cartTotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500">
+              <span className="font-medium">Delivery charges</span>
+              <span className="font-bold text-green-600 dark:text-green-400">Free</span>
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-[var(--border-color)]">
+              <span className="font-black text-[var(--text-primary)] text-sm">Total</span>
+              <span className="font-black text-xl text-[var(--text-primary)]">₹{cartTotal.toFixed(2)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Details Form */}
-        <form onSubmit={handleOrder} className="space-y-4">
-            <div className="flex justify-between items-center mb-2 ml-1">
-                <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">Delivery Details</h3>
-                {useSavedProfile && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-full flex items-center gap-1">
-                            <CheckCircle size={10} /> Using saved details
-                        </span>
-                        <button 
-                            type="button" 
-                            onClick={() => push('/profile')}
-                            className="text-[10px] text-[var(--primary-btn)] font-bold hover:underline"
-                        >
-                            Edit
-                        </button>
-                    </div>
-                )}
+        {/* STEP 2 — Delivery Details */}
+        <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[var(--shadow-soft)] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)]">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <MapPin size={14} className="text-blue-500" />
+              </div>
+              <p className="font-black text-[var(--text-primary)] text-sm">Delivery Details</p>
             </div>
-            
-            {useSavedProfile ? (
-                <div className="bg-[var(--card-bg)] rounded-[16px] p-4 border border-[var(--border-color)] shadow-sm space-y-3">
-                    <div className="flex items-center gap-3">
-                        <User className="text-gray-400" size={18} />
-                        <span className="font-bold text-[var(--text-primary)]">{formData.name}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Phone className="text-gray-400" size={18} />
-                        <span className="font-bold text-[var(--text-primary)]">{formData.mobile}</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <MapPin className="text-gray-400 mt-0.5" size={18} />
-                        <span className="font-bold text-[var(--text-primary)] text-sm">{formData.address}</span>
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
-                        <input 
-                            type="text" 
-                            required 
-                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
-                            placeholder="Full Name"
-                            value={formData.name}
-                            onChange={e => setFormData({...formData, name: e.target.value})}
-                        />
-                    </div>
-                    
-                    <div className="relative group">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
-                        <input 
-                            type="tel" 
-                            required 
-                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all"
-                            placeholder="Mobile Number"
-                            value={formData.mobile}
-                            onChange={e => setFormData({...formData, mobile: e.target.value})}
-                        />
-                    </div>
-                    
-                    <div className="relative group">
-                        <MapPin className="absolute left-4 top-4 text-gray-400 group-focus-within:text-[var(--text-primary)] transition-colors" size={20} />
-                        <textarea 
-                            required 
-                            rows={3}
-                            className="w-full pl-12 pr-4 py-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--card-bg)] font-bold text-[var(--text-body)] shadow-sm transition-all resize-none"
-                            placeholder="Full Address (Village, Landmark...)"
-                            value={formData.address}
-                            onChange={e => setFormData({...formData, address: e.target.value})}
-                        />
-                    </div>
-                </>
+            {useSavedProfile && !editingDetails && (
+              <button onClick={() => setEditingDetails(true)}
+                className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-xl border border-emerald-500/20 active:scale-95 transition-all">
+                <Edit2 size={10} /> Edit
+              </button>
             )}
+          </div>
 
-            <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-[#25D366] hover:bg-[#1ebd52] text-white font-bold py-4 rounded-[16px] shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-6 border-b-4 border-[#128C7E]"
-            >
-                {loading ? <Loader2 className="animate-spin" /> : <CheckCircle size={24} fill="white" />}
-                {loading ? 'Processing...' : 'Confirm Order'}
-            </button>
-            <p className="text-center text-[10px] text-gray-400 mt-3 font-medium flex items-center justify-center gap-1">
-                <CheckCircle size={10} /> Secure checkout
+          <div className="p-5">
+            {useSavedProfile && !editingDetails ? (
+              /* Saved profile display */
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)]">
+                  <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0">
+                    <User size={14} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Name</p>
+                    <p className="font-bold text-[var(--text-primary)] text-sm">{formData.name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)]">
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0">
+                    <Phone size={14} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Mobile</p>
+                    <p className="font-bold text-[var(--text-primary)] text-sm">{formData.mobile}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-[var(--input-bg)] rounded-xl border border-[var(--border-color)]">
+                  <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin size={14} className="text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Address</p>
+                    <p className="font-bold text-[var(--text-primary)] text-sm leading-snug">{formData.address}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <CheckCircle size={12} className="text-emerald-500" />
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Using saved profile details</p>
+                </div>
+              </div>
+            ) : (
+              /* Input form */
+              <form id="order-form" onSubmit={handleOrder} className="space-y-3">
+                <div className="relative group">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <User size={15} />
+                  </div>
+                  <input type="text" required value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    className="w-full pl-10 pr-4 py-3.5 rounded-[14px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] text-sm"
+                    placeholder="Full Name" />
+                </div>
+                <div className="relative group">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Phone size={15} />
+                  </div>
+                  <input type="tel" required value={formData.mobile}
+                    onChange={e => setFormData({...formData, mobile: e.target.value})}
+                    className="w-full pl-10 pr-4 py-3.5 rounded-[14px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] text-sm"
+                    placeholder="Mobile Number" />
+                </div>
+                <div className="relative group">
+                  <div className="absolute left-3.5 top-4 text-gray-400">
+                    <MapPin size={15} />
+                  </div>
+                  <textarea required rows={3} value={formData.address}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    className="w-full pl-10 pr-4 py-3.5 rounded-[14px] border border-[var(--border-color)] focus:ring-2 focus:ring-[var(--primary-btn)] outline-none bg-[var(--input-bg)] font-bold text-[var(--text-body)] text-sm resize-none"
+                    placeholder="Full Address (Village, Landmark...)" />
+                </div>
+                {editingDetails && (
+                  <button type="button" onClick={() => setEditingDetails(false)}
+                    className="text-xs text-gray-500 font-bold hover:text-[var(--text-primary)] transition-colors">
+                    ← Cancel editing
+                  </button>
+                )}
+              </form>
+            )}
+          </div>
+        </div>
+
+        {/* STEP 3 — Payment Info */}
+        <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[var(--shadow-soft)] overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-[var(--border-color)]">
+            <div className="w-7 h-7 bg-orange-500/10 rounded-lg flex items-center justify-center">
+              <Banknote size={14} className="text-orange-500" />
+            </div>
+            <p className="font-black text-[var(--text-primary)] text-sm">Payment Method</p>
+          </div>
+          <div className="p-5 space-y-2">
+            {/* COD */}
+            <div className="flex items-center gap-3 p-3 bg-green-500/5 rounded-xl border border-green-500/15">
+              <div className="w-9 h-9 bg-green-500/10 rounded-xl flex items-center justify-center shrink-0">
+                <Banknote size={18} className="text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-black text-[var(--text-primary)] text-sm">Cash on Delivery</p>
+                <p className="text-[10px] text-gray-400 font-medium">Pay in cash when order arrives</p>
+              </div>
+              <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                <CheckCircle size={10} className="text-white" strokeWidth={3} />
+              </div>
+            </div>
+            {/* Online */}
+            <div className="flex items-center gap-3 p-3 bg-blue-500/5 rounded-xl border border-blue-500/15">
+              <div className="w-9 h-9 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
+                <Smartphone size={18} className="text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <p className="font-black text-[var(--text-primary)] text-sm">Online Transfer</p>
+                <p className="text-[10px] text-gray-400 font-medium">UPI / Bank transfer after delivery</p>
+              </div>
+              <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                <CheckCircle size={10} className="text-white" strokeWidth={3} />
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-400 font-medium pt-1 flex items-start gap-1.5">
+              <Clock size={10} className="mt-0.5 shrink-0 text-gray-400" />
+              Payment is collected only after your order is successfully delivered.
             </p>
-        </form>
+          </div>
+        </div>
+
+        {/* Store info */}
+        <div className="flex items-center gap-3 p-4 bg-[var(--card-bg)] rounded-[20px] border border-[var(--border-color)] shadow-sm">
+          <div className="w-9 h-9 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0">
+            <Store size={16} className="text-emerald-600" />
+          </div>
+          <div>
+            <p className="font-black text-[var(--text-primary)] text-xs">New Nikhil Khad Bhandar</p>
+            <p className="text-[10px] text-gray-400 font-medium">Ganjdundwara • +91 9368340997</p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Fixed bottom CTA */}
+      <div className="fixed bottom-[65px] left-0 right-0 z-40 px-4 pb-3 pt-2 bg-[var(--bg-main)] border-t border-[var(--border-color)]">
+        <div className="max-w-md mx-auto space-y-2">
+          <div className="flex justify-between items-center px-1 mb-1">
+            <span className="text-xs text-gray-500 font-medium">Total Payable</span>
+            <span className="font-black text-[var(--text-primary)] text-lg">₹{cartTotal.toFixed(2)}</span>
+          </div>
+          <button
+            form={useSavedProfile && !editingDetails ? undefined : 'order-form'}
+            onClick={useSavedProfile && !editingDetails ? handleOrder : undefined}
+            disabled={loading}
+            className="w-full bg-[#25D366] hover:bg-[#1ebd52] text-white font-black py-4 rounded-[18px] shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm border-b-4 border-[#128C7E] disabled:opacity-60">
+            {loading ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle size={20} fill="white" />}
+            {loading ? 'Placing Order...' : 'Confirm Order'}
+          </button>
+        </div>
       </div>
     </AppLayout>
   );

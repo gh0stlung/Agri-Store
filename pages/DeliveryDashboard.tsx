@@ -70,74 +70,78 @@ export const DeliveryDashboard: React.FC = () => {
 
   useEffect(() => { if (staff) fetchOrders(); }, [staff, fetchOrders]);
 
-  // KEY FIX: location update now correctly saves to Supabase
-  const updateLocation = useCallback(async (staffId: string) => {
-    if (!supabase || !navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setLastLocation({ lat, lng });
+  const watchIdRef = useRef<number | null>(null);
 
-        const activeOrders = ordersRef.current;
-        if (activeOrders.length === 0) return;
+  const saveLocationToSupabase = useCallback(async (lat: number, lng: number, staffId: string) => {
+    if (!supabase) return;
+    try {
+      const activeOrders = ordersRef.current;
+      setLastLocation({ lat, lng });
 
-        try {
-          if (!supabase) return;
-          // Update orders table with latest location
-          const orderIds = activeOrders.map(o => o.id);
-          await supabase.from('orders').update({
-            delivery_lat: lat,
-            delivery_lng: lng,
-            delivery_updated_at: new Date().toISOString()
-          }).in('id', orderIds);
+      if (activeOrders.length > 0) {
+        const orderIds = activeOrders.map(o => o.id);
+        await supabase.from('orders').update({
+          delivery_lat: lat,
+          delivery_lng: lng,
+          delivery_updated_at: new Date().toISOString()
+        }).in('id', orderIds);
 
-          // Upsert into delivery_locations for each order
-          for (const order of activeOrders) {
-            if (!supabase) continue;
-            const { error } = await supabase.from('delivery_locations').upsert(
-              {
-                staff_id: staffId,
-                order_id: order.id,
-                lat: lat,
-                lng: lng,
-                updated_at: new Date().toISOString()
-              },
-              { onConflict: 'staff_id,order_id' }
-            );
-            if (error) {
-              // If upsert fails try insert
-              if (!supabase) continue;
-              await supabase.from('delivery_locations').insert({
-                staff_id: staffId,
-                order_id: order.id,
-                lat: lat,
-                lng: lng,
-                updated_at: new Date().toISOString()
-              });
-            }
-          }
-          console.log('Location saved:', lat, lng);
-        } catch (err) { console.error('Location save error:', err); }
-      },
-      (err) => { console.error('GPS error:', err); setLocationStatus('error'); },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
+        for (const order of activeOrders) {
+          await supabase.from('delivery_locations').upsert({
+            staff_id: staffId,
+            order_id: order.id,
+            lat,
+            lng,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'staff_id,order_id' });
+        }
+      }
+    } catch (err) { console.error('Save location error:', err); }
   }, []);
 
   const startTracking = useCallback(() => {
-    if (!staff) return;
+    if (!staff || !navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
     setLocationStatus('tracking');
-    updateLocation(staff.id);
-    locationInterval.current = setInterval(() => updateLocation(staff.id), 30000);
-  }, [staff, updateLocation]);
+
+    // Use watchPosition for accurate continuous tracking — works in PWA
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        saveLocationToSupabase(lat, lng, staff.id);
+      },
+      (err) => {
+        console.error('GPS watch error:', err);
+        setLocationStatus('error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0  // Always get fresh position
+      }
+    );
+  }, [staff, saveLocationToSupabase]);
 
   const stopTracking = useCallback(() => {
-    if (locationInterval.current) { clearInterval(locationInterval.current); locationInterval.current = null; }
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (locationInterval.current) {
+      clearInterval(locationInterval.current);
+      locationInterval.current = null;
+    }
     setLocationStatus('idle');
   }, []);
 
-  useEffect(() => () => { if (locationInterval.current) clearInterval(locationInterval.current); }, []);
+  // Cleanup on unmount
+  useEffect(() => () => {
+    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    if (locationInterval.current) clearInterval(locationInterval.current);
+  }, []);
 
   const handleMarkDelivered = async () => {
     if (!supabase || !deliveryModal || !selectedPayment) return;
