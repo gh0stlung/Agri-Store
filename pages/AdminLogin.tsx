@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Lock, ArrowLeft, Loader2, Mail, Eye, EyeOff } from 'lucide-react';
 import { Link } from '../components/Link';
+import { useNavigation } from '../context/NavigationContext';
 
 export const AdminLogin: React.FC = () => {
+  const { replace } = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,9 +35,9 @@ export const AdminLogin: React.FC = () => {
       if (data?.user) {
         setLoading(false);
         if (email.trim().toLowerCase() === "admin69@gmail.com") {
-          window.location.href = "/#/admin";
+          replace("/admin");
         } else {
-          window.location.href = "/";
+          replace("/");
         }
       }
 

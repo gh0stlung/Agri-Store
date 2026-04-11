@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useNavigation } from '../context/NavigationContext';
 
 const DELIVERY_KEY = 'nnkb_delivery_locked';
 
 interface Props { children: React.ReactNode; }
 
 export const DeliveryProtectedRoute: React.FC<Props> = ({ children }) => {
+  const { replace } = useNavigation();
   const [status, setStatus] = useState<'checking'|'allowed'|'denied'>('checking');
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export const DeliveryProtectedRoute: React.FC<Props> = ({ children }) => {
   );
 
   if (status === 'denied') {
-    window.location.replace('/delivery-login');
+    replace('/delivery-login');
     return null;
   }
 

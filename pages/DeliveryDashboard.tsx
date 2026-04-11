@@ -8,6 +8,8 @@ import {
   Lock, Delete, ShoppingBag
 } from 'lucide-react';
 
+import { useNavigation } from '../context/NavigationContext';
+
 const DELIVERY_KEY = 'nnkb_delivery_locked';
 
 interface DeliveryStaff { id: string; name: string; phone: string; pin: string; }
@@ -26,6 +28,7 @@ const PAYMENT_OPTIONS = [
 ];
 
 export const DeliveryDashboard: React.FC = () => {
+  const { replace } = useNavigation();
   const [staff, setStaff] = useState<DeliveryStaff | null>(null);
   const staffRef = useRef<DeliveryStaff | null>(null); // FIX: use ref to avoid stale closure
   const [orders, setOrders] = useState<AssignedOrder[]>([]);
@@ -52,14 +55,14 @@ export const DeliveryDashboard: React.FC = () => {
   // ── STEP 1: Load staff ──
   useEffect(() => {
     const stored = localStorage.getItem(DELIVERY_KEY);
-    if (!stored) { window.location.replace('/delivery-login'); return; }
+    if (!stored) { replace('/delivery-login'); return; }
     try {
       const data = JSON.parse(stored);
-      if (!data?.id) { window.location.replace('/delivery-login'); return; }
+      if (!data?.id) { replace('/delivery-login'); return; }
       setStaff(data);
       staffRef.current = data; // FIX: keep ref in sync
-    } catch(e) { window.location.replace('/delivery-login'); }
-  }, []);
+    } catch(e) { replace('/delivery-login'); }
+  }, [replace]);
 
   // ── STEP 2: Lock navigation ──
   useEffect(() => {
@@ -183,7 +186,7 @@ export const DeliveryDashboard: React.FC = () => {
     if (pinToCheck === currentStaff.pin) {
       localStorage.removeItem(DELIVERY_KEY);
       sessionStorage.removeItem('delivery_staff');
-      window.location.replace('/');
+      replace('/');
     } else {
       setExitError('Wrong PIN — try again');
       setExitShake(true);

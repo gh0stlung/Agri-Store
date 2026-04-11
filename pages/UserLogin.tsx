@@ -6,7 +6,7 @@ import { useNavigation } from '../context/NavigationContext';
 type Step = 'auth' | 'profile';
 
 export const UserLogin: React.FC = () => {
-  const { push } = useNavigation();
+  const { push, replace } = useNavigation();
   const [step, setStep] = useState<Step>('auth');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -59,7 +59,7 @@ export const UserLogin: React.FC = () => {
           password: form.password.trim()
         });
         if (error) throw error;
-        if (data?.user) window.location.href = '/';
+        if (data?.user) replace('/');
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: form.email.trim(),
@@ -95,7 +95,7 @@ export const UserLogin: React.FC = () => {
         mobile: profile.phone.trim(),
         address: profile.address.trim()
       }));
-      window.location.href = '/';
+      replace('/');
     } catch (err: any) {
       setError(err.message || 'Failed to save profile');
     } finally {

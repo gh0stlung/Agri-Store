@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Truck, Loader2, Delete, User, Phone } from 'lucide-react';
+import { useNavigation } from '../context/NavigationContext';
 
 const DELIVERY_KEY = 'nnkb_delivery_locked';
 
 // This component is ONLY shown when no delivery staff is locked in
 export const DeliveryLogin: React.FC = () => {
+  const { replace } = useNavigation();
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +22,7 @@ export const DeliveryLogin: React.FC = () => {
       try {
         const data = JSON.parse(stored);
         if (data?.id) {
-          window.location.replace('/delivery');
+          replace('/delivery');
           return;
         }
       } catch(e) {}
@@ -86,7 +88,7 @@ export const DeliveryLogin: React.FC = () => {
       }
       // Lock permanently
       localStorage.setItem(DELIVERY_KEY, JSON.stringify(data));
-      window.location.replace('/delivery');
+      replace('/delivery');
     } catch (err: any) {
       setError(err.message || 'Login failed');
       triggerShake();
