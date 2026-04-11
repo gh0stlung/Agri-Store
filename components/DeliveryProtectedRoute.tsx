@@ -1,26 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigation } from '../context/NavigationContext';
+import { Loader2 } from 'lucide-react';
 
-interface DeliveryProtectedRouteProps {
-  children: React.ReactNode;
-}
+const DELIVERY_KEY = 'nnkb_delivery_locked';
 
-export const DeliveryProtectedRoute: React.FC<DeliveryProtectedRouteProps> = ({ children }) => {
-  const { push } = useNavigation();
-  const [checked, setChecked] = useState(false);
-  const [allowed, setAllowed] = useState(false);
+interface Props { children: React.ReactNode; }
+
+export const DeliveryProtectedRoute: React.FC<Props> = ({ children }) => {
+  const [status, setStatus] = useState<'checking'|'allowed'|'denied'>('checking');
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('delivery_staff');
-    if (!stored) {
-      push('/delivery-login');
-    } else {
-      setAllowed(true);
+    const stored = localStorage.getItem(DELIVERY_KEY);
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        if (data?.id) { setStatus('allowed'); return; }
+      } catch(e) {}
     }
-    setChecked(true);
+    setStatus('denied');
   }, []);
 
-  if (!checked) return null;
-  if (!allowed) return null;
+  if (status === 'checking') return (
+    <div className="fixed inset-0 bg-[#080e1a] flex items-center justify-center">
+      <Loader2 size={28} className="animate-spin text-orange-400" />
+    </div>
+  );
+
+  if (status === 'denied') {
+    window.location.replace('/delivery-login');
+    return null;
+  }
+
   return <>{children}</>;
 };

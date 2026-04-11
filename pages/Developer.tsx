@@ -19,6 +19,7 @@ interface Profile {
   name: string;
   mobile: string;
   address: string;
+  is_blocked?: boolean;
 }
 
 interface ActivityLog {
@@ -123,7 +124,7 @@ export const Developer: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, mobile, address");
+        .select("id, name, mobile, address, is_blocked");
 
       if (error) {
         console.error("Fetch error:", error);
@@ -285,6 +286,19 @@ export const Developer: React.FC = () => {
       setUsers(prev => prev.filter(u => u.id !== id));
       setDeleteConfirm(null);
     } catch (err: any) {
+      setLastError(err.message);
+    }
+  };
+
+  const toggleBlockUser = async (userId: string, currentBlocked: boolean) => {
+    if (!supabase) return;
+    try {
+      await supabase
+        .from('profiles')
+        .update({ is_blocked: !currentBlocked })
+        .eq('id', userId);
+      fetchUsers();
+    } catch(err: any) {
       setLastError(err.message);
     }
   };
@@ -686,7 +700,11 @@ export const Developer: React.FC = () => {
                       key={profile.id}
                       className="bg-black/40 backdrop-blur-md border border-teal-500/10 rounded-2xl p-6 hover:border-teal-500/30 transition-all group relative overflow-hidden"
                     >
-                      <div className="absolute top-0 right-0 p-4">
+                      <div className="absolute top-0 right-0 p-4 flex items-center gap-2">
+                        <button onClick={() => toggleBlockUser(profile.id, profile.is_blocked || false)}
+                          className={`relative w-11 h-6 rounded-full border transition-all ${profile.is_blocked ? 'bg-red-500/20 border-red-500/30' : 'bg-teal-500/20 border-teal-500/30'}`}>
+                          <div className={`absolute top-0.5 w-5 h-5 rounded-full transition-all shadow-sm ${profile.is_blocked ? 'left-0.5 bg-red-500' : 'left-[22px] bg-teal-500'}`} />
+                        </button>
                         <button 
                           onClick={() => setDeleteConfirm({ type: 'user', id: profile.id, title: `Delete user ${profile.name}?` })}
                           className="p-2 text-red-400/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
@@ -696,12 +714,14 @@ export const Developer: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center border border-teal-500/20">
-                          <User size={24} className="text-teal-500" />
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${profile.is_blocked ? 'bg-red-500/10 border-red-500/20' : 'bg-teal-500/10 border-teal-500/20'}`}>
+                          <User size={24} className={profile.is_blocked ? 'text-red-500' : 'text-teal-500'} />
                         </div>
                         <div>
                           <h4 className="text-sm font-black text-white">{profile.name || 'Anonymous'}</h4>
-                          <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">Registered User</p>
+                          <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest">
+                            {profile.is_blocked ? <span className="text-red-500">Blocked User</span> : 'Registered User'}
+                          </p>
                         </div>
                       </div>
 
