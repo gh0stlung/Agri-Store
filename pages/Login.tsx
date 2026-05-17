@@ -79,7 +79,7 @@ export const Login: React.FC = () => {
               <Truck size={20} className="text-orange-400" />
             </div>
             <div className="text-left flex-1">
-              <p className="font-black text-white text-sm">Delivery Login</p>
+              <p className="font-black text-white text-sm">Staff Login</p>
               <p className="text-orange-200/30 text-[11px] font-medium mt-0.5">View & deliver assigned orders</p>
             </div>
             <div className="text-white/20 group-hover:text-orange-400 group-hover:translate-x-1 transition-all">

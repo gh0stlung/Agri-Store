@@ -205,7 +205,7 @@ export const TrackOrder: React.FC = () => {
                   {/* Delivery Agent Info */}
                   {order.assigned_to && deliveryStaffMap[order.assigned_to] && (
                     <div className="mt-4 p-3 bg-orange-500/5 rounded-xl border border-orange-500/10">
-                      <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-2">Delivery Partner</p>
+                      <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-2">Staff Partner</p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center border border-orange-500/20">

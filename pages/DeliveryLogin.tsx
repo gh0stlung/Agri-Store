@@ -120,7 +120,7 @@ export const DeliveryLogin: React.FC = () => {
           <div className="w-16 h-16 bg-orange-500/10 rounded-[20px] flex items-center justify-center border border-orange-500/20 shadow-[0_0_30px_rgba(251,146,60,0.1)]">
             <Truck size={30} className="text-orange-400" />
           </div>
-          <h1 className="text-xl font-black text-white tracking-tight">Delivery Portal</h1>
+          <h1 className="text-xl font-black text-white tracking-tight">Staff Portal</h1>
           <p className="text-orange-200/30 text-[11px] uppercase tracking-widest font-bold">Enter PIN to Access</p>
         </div>
 

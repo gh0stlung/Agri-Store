@@ -502,7 +502,7 @@ export const Admin: React.FC = () => {
           is_active: true
         }]);
         if (error) throw error;
-        showToast('Delivery staff added!');
+        showToast('Staff added!');
       }
       setStaffForm({ name: '', phone: '', pin: '' });
       setEditingStaff(null);
@@ -1046,7 +1046,7 @@ export const Admin: React.FC = () => {
                                       onChange={e => assignOrderToStaff(order.id, e.target.value)}
                                       className="w-full py-1.5 px-3 border border-[var(--border-color)] rounded-[10px] bg-[var(--input-bg)] text-[11px] font-bold text-[var(--text-primary)] focus:ring-2 focus:ring-orange-500 outline-none appearance-none"
                                     >
-                                      <option value="">— Assign Delivery Staff —</option>
+                                      <option value="">— Assign Staff —</option>
                                       {deliveryStaff.filter(s => s.is_active).map(s => (
                                         <option key={s.id} value={s.id}>{s.name} ({s.phone})</option>
                                       ))}
@@ -1244,10 +1244,10 @@ export const Admin: React.FC = () => {
               </div>
             </div>
 
-            {/* ── DELIVERY STAFF HEADER ── */}
+            {/* ── STAFF HEADER ── */}
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-black text-[var(--text-primary)] text-base">Delivery Staff</h3>
+                <h3 className="font-black text-[var(--text-primary)] text-base">Staff</h3>
                 <p className="text-[10px] text-gray-400 font-medium mt-0.5">{deliveryStaff.length} member{deliveryStaff.length !== 1 ? 's' : ''} registered</p>
               </div>
               <button
@@ -1269,7 +1269,7 @@ export const Admin: React.FC = () => {
                         <Truck size={16} className="text-orange-500" />
                       </div>
                       <h3 className="font-black text-[var(--text-primary)] text-base">
-                        {editingStaff ? 'Edit Staff Member' : 'Add Delivery Staff'}
+                        {editingStaff ? 'Edit Staff Member' : 'Add Staff'}
                       </h3>
                     </div>
                     <button onClick={() => setIsStaffFormOpen(false)}
@@ -1298,7 +1298,7 @@ export const Admin: React.FC = () => {
                         onChange={e => setStaffForm({...staffForm, pin: e.target.value.replace(/\D/g, '')})}
                         className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[14px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-black text-[var(--text-primary)] text-base tracking-[0.5em] transition-all text-center"
                         placeholder="••••" />
-                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 ml-1 text-center">This PIN is used to login and exit the delivery dashboard</p>
+                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 ml-1 text-center">This PIN is used to login and exit the staff dashboard</p>
                     </div>
                     <button type="submit" disabled={savingStaff}
                       className="w-full bg-[var(--primary-btn)] text-white py-3.5 rounded-[14px] font-black text-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-md">
@@ -1319,8 +1319,8 @@ export const Admin: React.FC = () => {
               ) : deliveryStaff.length === 0 ? (
                 <div className="p-10 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)]">
                   <Truck size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                  <p className="font-bold text-[var(--text-primary)] text-sm">No delivery staff yet</p>
-                  <p className="text-xs text-gray-500 mt-1">Add your first delivery agent above</p>
+                  <p className="font-bold text-[var(--text-primary)] text-sm">No staff yet</p>
+                  <p className="text-xs text-gray-500 mt-1">Add your first staff agent above</p>
                 </div>
               ) : (
                 deliveryStaff.map(member => {

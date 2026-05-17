@@ -231,7 +231,7 @@ export const DeliveryDashboard: React.FC = () => {
             </div>
             <div>
               <p className="font-black text-white text-sm leading-none">{staff.name}</p>
-              <p className="text-[9px] text-orange-300/40 font-bold uppercase tracking-widest mt-0.5">Delivery Agent • {staff.phone}</p>
+              <p className="text-[9px] text-orange-300/40 font-bold uppercase tracking-widest mt-0.5">Staff Agent • {staff.phone}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
