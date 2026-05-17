@@ -1,48 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { supabase } from '../services/supabase.ts';
-import { Loader2 } from 'lucide-react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const [checking, setChecking] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
-    // 1. Check active session immediately
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    const checkBlock = async () => {
+      if (user && supabase) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('is_blocked')
+          .eq('id', user.id)
+          .single();
+        setIsBlocked(data?.is_blocked || false);
+      }
+      setChecking(false);
+    };
+    if (!loading) checkBlock();
+  }, [user, loading]);
 
-    // 2. Listen for auth changes (e.g. token expiry, logout in other tab)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#FFFCF0]">
-        <div className="flex flex-col items-center gap-4">
-            <Loader2 className="animate-spin text-[#064E3B]" size={32} />
-            <p className="text-[#064E3B] font-medium font-serif">Verifying Access...</p>
-        </div>
-      </div>
-    );
+  if (loading || checking) {
+    return <p style={{ textAlign: 'center', marginTop: '50px', fontWeight: 'bold', color: '#064E3B' }}>Loading...</p>;
   }
 
-  if (!session) {
-    // Redirect to login if not authenticated
-    return <Navigate to="/login" replace />;
+  if (!user && location.pathname !== '/profile') {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Render children (Admin) if authenticated
+  // Blocked users → delivery dashboard only
+  if (isBlocked) {
+    return <Navigate to="/delivery" replace />;
+  }
+
   return <>{children}</>;
 };

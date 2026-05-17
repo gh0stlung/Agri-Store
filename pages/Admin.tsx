@@ -1,354 +1,1552 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase.ts';
-import { useNavigate } from 'react-router-dom';
-import { Product, Order } from '../types.ts';
-import { Plus, Trash2, Edit2, LogOut, Save, X, ArrowLeft, Package, ShoppingBag, Calendar } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useNavigation } from '../context/NavigationContext';
+import { Product, Order, StoreUpdate } from '../types';
+import { 
+  Plus, Trash2, Edit2, Save, X, 
+  Package, ShoppingBag, Bell, ChevronDown, Image as ImageIcon,
+  Search, Calendar, Phone, Clock, AlertTriangle, Loader2,
+  Inbox, User, ArrowLeft, Truck, MapPin, Navigation, Edit3, Eye, EyeOff,
+  RefreshCw, CheckCircle
+} from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import { AppLayout } from '../components/AppLayout';
+import { useToast } from '../context/ToastContext';
+
+// Helper function to create image
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image()
+    image.addEventListener('load', () => resolve(image))
+    image.addEventListener('error', (error) => reject(error))
+    image.setAttribute('crossOrigin', 'anonymous') // needed to avoid cross-origin issues on CodeSandbox
+    image.src = url
+  })
+
+// Helper function to get cropped image
+async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: any,
+  rotation = 0,
+  flip = { horizontal: false, vertical: false }
+): Promise<string> {
+  const image = await createImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+
+  if (!ctx) {
+    return ''
+  }
+
+  canvas.width = image.width
+  canvas.height = image.height
+
+  ctx.translate(image.width / 2, image.height / 2)
+  ctx.rotate((rotation * Math.PI) / 180)
+  ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1)
+  ctx.translate(-image.width / 2, -image.height / 2)
+
+  ctx.drawImage(image, 0, 0)
+
+  const croppedCanvas = document.createElement('canvas')
+  const croppedCtx = croppedCanvas.getContext('2d')
+
+  if (!croppedCtx) {
+    return ''
+  }
+
+  croppedCanvas.width = pixelCrop.width
+  croppedCanvas.height = pixelCrop.height
+
+  croppedCtx.drawImage(
+    canvas,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  )
+
+  return croppedCanvas.toDataURL('image/jpeg', 0.8)
+}
 
 export const Admin: React.FC = () => {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
+  const { push } = useNavigation();
+  const { showToast } = useToast();
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'updates' | 'delivery'>('products');
   
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [updates, setUpdates] = useState<StoreUpdate[]>([]);
+  const [deliveryStaff, setDeliveryStaff] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingUpdates, setLoadingUpdates] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadingDelivery, setLoadingDelivery] = useState(false);
   
-  // Edit State
+  // Forms & Edit State
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<Product>>({
-    name: '',
-    category: '',
-    price: 0,
-    stock: 0,
-    image_url: ''
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Crop State
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  
+  // Product Form
+  const [productForm, setProductForm] = useState<Partial<Product>>({ 
+    name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true, variants: []
   });
 
+  const [staffForm, setStaffForm] = useState({ name: '', phone: '', pin: '' });
+  const [editingStaff, setEditingStaff] = useState<any | null>(null);
+  const [isStaffFormOpen, setIsStaffFormOpen] = useState(false);
+  const [savingStaff, setSavingStaff] = useState(false);
+  const [showPins, setShowPins] = useState<Record<string, boolean>>({});
+  const [liveLocations, setLiveLocations] = useState<any[]>([]);
+  
+  // User Management State
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  // Update Form
+  const [text, setText] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const CATEGORIES = ['Seeds', 'Fertilizer', 'Pesticides', 'Tools', 'Offers'];
+  const UNITS = ['kg', 'gram', 'bag', 'liter', 'ml', 'piece', 'packet'];
+  
+  const STATUS_OPTIONS = [
+      { value: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+      { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+      { value: 'shipped', label: 'Shipped', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+      { value: 'delivered', label: 'Delivered', color: 'bg-green-100 text-green-700 border-green-200' },
+      { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-700 border-red-200' },
+  ];
+
   useEffect(() => {
-    // We can assume user is authenticated here because of ProtectedRoute wrapper
-    fetchData();
+    init();
+    // Refresh live locations every 30 seconds
+    const locInterval = setInterval(loadLiveLocations, 30000);
+    return () => clearInterval(locInterval);
   }, []);
 
-  const fetchData = async () => {
-    try {
-      await Promise.all([fetchProducts(), fetchOrders()]);
-    } catch (error) {
-      console.error("Error loading admin data", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProducts = async () => {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-    setProducts(data || []);
-  };
-
-  const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-        console.error("Error fetching orders:", error);
-    }
-    setOrders(data || []);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
-
-  // --- Product Handlers ---
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
-    const { error } = await supabase.from('products').delete().eq('id', id);
-    if (!error) fetchProducts();
-    else alert("Failed to delete. Check console for details.");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.price) return;
-
-    if (editingId) {
-      const { error } = await supabase.from('products').update(formData).eq('id', editingId);
-      if (!error) {
-        setEditingId(null);
-        resetForm();
-        fetchProducts();
-      } else {
-        alert("Update failed: " + error.message);
-      }
+  useEffect(() => {
+    if (isFormOpen) {
+      document.body.style.overflow = 'hidden';
     } else {
-      const { error } = await supabase.from('products').insert([formData]);
-      if (!error) {
-        resetForm();
-        fetchProducts();
-      } else {
-        alert("Creation failed: " + error.message);
-      }
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFormOpen]);
+
+  useEffect(() => {
+    if (isFormOpen) {
+      window.history.pushState({ modal: 'product-form' }, '');
+      const handlePopState = () => {
+        setIsFormOpen(false);
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isFormOpen]);
+
+  const closeForm = () => {
+    if (window.history.state?.modal === 'product-form') {
+      window.history.back();
+    } else {
+      setIsFormOpen(false);
     }
   };
 
-  const startEdit = (product: Product) => {
-    setEditingId(product.id);
-    setFormData(product);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const init = async () => {
+    await fetchData();
+    loadAllUsers();
   };
 
-  const resetForm = () => {
-    setFormData({ name: '', category: '', price: 0, stock: 0, image_url: '' });
+  const loadProducts = async () => {
+    try {
+      if (!supabase) return;
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const loadOrders = async () => {
+    try {
+      if (!supabase) return;
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const loadUpdates = async () => {
+    try {
+      if (!supabase) return;
+      const { data, error } = await supabase.from('updates').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setUpdates(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingUpdates(false);
+    }
+  };
+
+  const loadDeliveryStaff = async () => {
+    if (!supabase) return;
+    setLoadingDelivery(true);
+    try {
+      const { data } = await supabase.from('delivery_staff').select('*').order('created_at', { ascending: false });
+      setDeliveryStaff(data || []);
+    } catch (err) { console.error(err); }
+    finally { setLoadingDelivery(false); }
+  };
+
+  const loadLiveLocations = async () => {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('delivery_locations')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      
+      if (error) { console.error('location fetch error:', error); return; }
+
+      // Get staff details separately
+      const { data: staffData } = await supabase
+        .from('delivery_staff')
+        .select('id, name, phone');
+      
+      const staffMap: Record<string, any> = {};
+      (staffData || []).forEach(s => { staffMap[s.id] = s; });
+
+      // Get latest location per staff member
+      const latest: Record<string, any> = {};
+      (data || []).forEach(loc => {
+        if (!latest[loc.staff_id] || new Date(loc.updated_at) > new Date(latest[loc.staff_id].updated_at)) {
+          latest[loc.staff_id] = { ...loc, staff: staffMap[loc.staff_id] };
+        }
+      });
+      setLiveLocations(Object.values(latest));
+    } catch (err) { console.error(err); }
+  };
+
+  const loadAllUsers = async () => {
+    if (!supabase) return;
+    setLoadingUsers(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (err) {
+      console.error('Error loading users:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const toggleBlockUser = async (userId: string, currentStatus: boolean) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_blocked: !currentStatus })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      setAllUsers(users => users.map(u => 
+        u.id === userId ? { ...u, is_blocked: !currentStatus } : u
+      ));
+      showToast(`User ${!currentStatus ? 'blocked' : 'unblocked'} successfully`, 'success');
+    } catch (err) {
+      console.error('Error toggling block status:', err);
+      showToast('Failed to update user status', 'error');
+    }
+  };
+
+  const fetchData = async () => {
+    await Promise.all([loadProducts(), loadOrders(), loadUpdates(), loadDeliveryStaff()]);
+    loadLiveLocations();
+  };
+
+  // --- HANDLERS ---
+
+  const handleFileSelect = (target: string) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files || e.target.files.length === 0) return;
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+          setCropImageSrc(reader.result as string);
+          setCropTarget(target);
+      };
+      reader.readAsDataURL(file);
+  };
+
+  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handleCropImage = async () => {
+    try {
+      if (!cropImageSrc || !croppedAreaPixels || !cropTarget) return;
+      const croppedImage = await getCroppedImg(cropImageSrc, croppedAreaPixels);
+      
+      if (cropTarget === 'main') {
+        setProductForm(prev => ({ ...prev, image_url: croppedImage }));
+      } else {
+        setProductForm(prev => {
+          const newVariants = [...(prev.variants || [])];
+          const variantIndex = newVariants.findIndex(v => v.id === cropTarget);
+          if (variantIndex !== -1) {
+            newVariants[variantIndex].image_url = croppedImage;
+          }
+          return { ...prev, variants: newVariants };
+        });
+      }
+      
+      setCropImageSrc(null);
+      setCropTarget(null);
+    } catch (e) {
+      console.error(e);
+      showToast("Error cropping image", "error");
+    }
+  };
+
+  const saveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    
+    setIsSaving(true);
+    try {
+        // 1. Check Authentication explicitly before action
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            showToast("Security Check Failed: You must be logged in.", "error");
+            push('/login');
+            return;
+        }
+
+        let finalImageUrl = productForm.image_url;
+        
+        // Helper to upload base64 images
+        const uploadBase64Image = async (base64Str: string) => {
+             if (!supabase) throw new Error("Supabase not connected");
+             const res = await fetch(base64Str);
+             const blob = await res.blob();
+             const fileName = `prod_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+             
+             const { error: uploadError } = await supabase.storage
+                .from('product-images')
+                .upload(fileName, blob, { 
+                    upsert: true,
+                    contentType: 'image/png'
+                });
+             
+             if (uploadError) throw new Error(`Image Upload Failed: ${uploadError.message}`);
+             
+             const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
+             return data.publicUrl;
+        };
+
+        // Handle Main Image Upload if base64 (new selection)
+        if (finalImageUrl && finalImageUrl.startsWith('data:')) {
+             finalImageUrl = await uploadBase64Image(finalImageUrl);
+        }
+
+        // Handle Variant Images
+        const finalVariants = await Promise.all((productForm.variants || []).map(async (variant) => {
+            let variantImageUrl = variant.image_url;
+            if (variantImageUrl && variantImageUrl.startsWith('data:')) {
+                variantImageUrl = await uploadBase64Image(variantImageUrl);
+            }
+            return { ...variant, image_url: variantImageUrl, price: Number(variant.price) };
+        }));
+
+        const payload = { 
+            name: productForm.name,
+            category: productForm.category,
+            price: (finalVariants && finalVariants.length > 0) ? 0 : Number(productForm.price),
+            stock: Number(productForm.stock),
+            unit: productForm.unit,
+            image_url: finalImageUrl,
+            is_active: productForm.is_active ?? true,
+            variants: finalVariants
+        };
+        
+        if (editingId) {
+             const { error } = await supabase.from('products').update(payload).eq('id', editingId);
+             if (error) throw new Error(`Update Failed: ${error.message}`);
+             showToast("Product updated successfully!");
+        } else {
+             const { error } = await supabase.from('products').insert([payload]);
+             if (error) throw new Error(`Insert Failed: ${error.message}`);
+             showToast("Product added successfully!");
+        }
+        
+        resetForms();
+        fetchData();
+        closeForm();
+    } catch (e: any) {
+        console.error(e);
+        showToast(e.message || "Something went wrong", "error");
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!supabase) return;
+    try {
+        const { error } = await supabase.from('products').delete().eq('id', id);
+        if (error) throw error;
+        showToast("Product deleted successfully!");
+        fetchData();
+    } catch (err) {
+        console.error(err);
+        showToast("Failed to delete product", "error");
+    } finally {
+        setDeleteConfirmId(null);
+    }
+  };
+
+  const postUpdate = async () => {
+    if (!text) {
+      showToast("Enter update message", "error");
+      return;
+    }
+    if (!supabase) return;
+
+    setIsSaving(true);
+    const { error } = await supabase.from("updates").insert([
+      {
+        message: text,
+      },
+    ]);
+
+    setIsSaving(false);
+    if (error) {
+      showToast("Update failed: " + error.message, "error");
+      return;
+    }
+
+    showToast("Update posted successfully!");
+    setText("");
+    fetchData();
+  };
+
+  const deleteUpdate = async (id: string) => {
+      if (!supabase) return;
+      const { error } = await supabase.from('updates').delete().eq('id', id);
+      if (error) showToast("Failed to delete update", "error");
+      else {
+          showToast("Update deleted");
+          fetchData();
+      }
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+      if (!supabase) return;
+      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+      if (error) showToast("Failed to update status", "error");
+      else {
+          showToast(`Order marked as ${newStatus}`);
+          setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      }
+  };
+
+  const saveStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setSavingStaff(true);
+    try {
+      if (editingStaff) {
+        const { error } = await supabase.from('delivery_staff').update({
+          name: staffForm.name.trim(),
+          phone: staffForm.phone.trim(),
+          pin: staffForm.pin.trim(),
+        }).eq('id', editingStaff.id);
+        if (error) throw error;
+        showToast('Staff updated!');
+      } else {
+        const { error } = await supabase.from('delivery_staff').insert([{
+          name: staffForm.name.trim(),
+          phone: staffForm.phone.trim(),
+          pin: staffForm.pin.trim(),
+          is_active: true
+        }]);
+        if (error) throw error;
+        showToast('Staff added!');
+      }
+      setStaffForm({ name: '', phone: '', pin: '' });
+      setEditingStaff(null);
+      setIsStaffFormOpen(false);
+      loadDeliveryStaff();
+    } catch (err: any) {
+      showToast(err.message || 'Failed', 'error');
+    } finally { setSavingStaff(false); }
+  };
+
+  const deleteStaff = async (id: string) => {
+    if (!supabase) return;
+    try {
+      await supabase.from('delivery_staff').delete().eq('id', id);
+      showToast('Staff removed');
+      loadDeliveryStaff();
+    } catch (err: any) { showToast('Failed', 'error'); }
+  };
+
+  const toggleActiveStaff = async (id: string, current: boolean) => {
+    if (!supabase) return;
+    await supabase.from('delivery_staff').update({ is_active: !current }).eq('id', id);
+    loadDeliveryStaff();
+  };
+
+  const assignOrderToStaff = async (orderId: string, staffId: string) => {
+    if (!supabase) return;
+    try {
+      await supabase.from('orders').update({
+        assigned_to: staffId || null,
+        status: staffId ? 'shipped' : 'confirmed'
+      }).eq('id', orderId);
+      showToast(staffId ? 'Order assigned!' : 'Assignment removed');
+      loadOrders();
+    } catch (err: any) { showToast('Failed to assign', 'error'); }
+  };
+
+  const resetForms = () => {
+    setProductForm({ name: '', category: '', price: '' as any, stock: '' as any, image_url: '', unit: 'kg', is_active: true, variants: [] });
     setEditingId(null);
+    setText('');
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#FFFCF0]">
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#064E3B]"></div>
-        <p className="text-[#064E3B] font-medium animate-pulse">Loading Dashboard...</p>
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const ProductSkeleton = () => (
+    <div className="bg-[var(--card-bg)] rounded-[16px] p-3 shadow-sm border border-[var(--border-color)] flex gap-3 transition-colors duration-200">
+      <div className="w-16 h-16 rounded-[10px] bg-[var(--bg-main)] skeleton flex-shrink-0" />
+      <div className="flex-1 flex flex-col justify-between py-0.5">
+        <div className="space-y-2">
+          <div className="h-4 w-3/4 bg-[var(--bg-main)] skeleton rounded" />
+          <div className="h-3 w-1/4 bg-[var(--bg-main)] skeleton rounded" />
+        </div>
+        <div className="flex justify-between items-end">
+          <div className="space-y-1">
+            <div className="h-2 w-12 bg-[var(--bg-main)] skeleton rounded" />
+            <div className="h-4 w-16 bg-[var(--bg-main)] skeleton rounded" />
+          </div>
+          <div className="flex gap-1.5">
+            <div className="w-8 h-8 bg-[var(--bg-main)] skeleton rounded-lg" />
+            <div className="w-8 h-8 bg-[var(--bg-main)] skeleton rounded-lg" />
+          </div>
+        </div>
       </div>
     </div>
   );
 
-  return (
-    <div className="min-h-screen bg-[#FFFCF0] pb-20">
-      {/* Admin Header */}
-      <div className="bg-[#FFFCF0]/95 backdrop-blur-sm border-b border-[#E7E5E4] px-6 py-4 sticky top-0 z-40">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="p-2 -ml-2 hover:bg-white rounded-full transition-colors">
-              <ArrowLeft size={20} className="text-[var(--text-primary)]" />
-            </Link>
-            <h1 className="font-bold text-xl text-[var(--text-primary)] font-serif">Store Manager</h1>
+  const OrderSkeleton = () => (
+    <div className="bg-[var(--card-bg)] rounded-[20px] shadow-sm border border-[var(--border-color)] overflow-hidden transition-colors duration-200">
+      <div className="bg-[var(--bg-main)]/50 p-4 border-b border-[var(--border-color)] flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-[var(--bg-main)] skeleton" />
+          <div className="space-y-2">
+            <div className="h-4 w-24 bg-[var(--bg-main)] skeleton rounded" />
+            <div className="h-3 w-16 bg-[var(--bg-main)] skeleton rounded" />
           </div>
-          <button 
-            onClick={handleLogout}
-            className="text-[#78350F] hover:text-red-600 flex items-center gap-2 text-sm font-bold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <LogOut size={16} /> Logout
-          </button>
         </div>
-
-        {/* Tabs */}
-        <div className="flex p-1 bg-[#E7E5E4]/50 rounded-xl">
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === 'products' ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[#78350F] hover:bg-white/50'
-            }`}
-          >
-            Products
-          </button>
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === 'orders' ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[#78350F] hover:bg-white/50'
-            }`}
-          >
-            Orders
-          </button>
+        <div className="h-6 w-16 bg-[var(--bg-main)] skeleton rounded" />
+      </div>
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="h-3 w-20 bg-[var(--bg-main)] skeleton rounded" />
+          <div className="h-16 w-full bg-[var(--bg-main)] skeleton rounded-[16px]" />
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="h-3 w-24 bg-[var(--bg-main)] skeleton rounded" />
+            <div className="h-8 w-full bg-[var(--bg-main)] skeleton rounded-[12px]" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-3 w-20 bg-[var(--bg-main)] skeleton rounded" />
+            <div className="h-8 w-full bg-[var(--bg-main)] skeleton rounded-[12px]" />
+          </div>
         </div>
       </div>
+    </div>
+  );
 
-      <div className="max-w-md mx-auto p-4 space-y-6">
+  const UpdateSkeleton = () => (
+    <div className="bg-[var(--card-bg)] p-4 rounded-[20px] border border-[var(--border-color)] flex gap-4 items-start shadow-sm transition-colors duration-200">
+      <div className="w-10 h-10 rounded-full bg-[var(--bg-main)] skeleton shrink-0" />
+      <div className="flex-1 space-y-3">
+        <div className="h-4 w-full bg-[var(--bg-main)] skeleton rounded" />
+        <div className="h-4 w-2/3 bg-[var(--bg-main)] skeleton rounded" />
+        <div className="h-3 w-24 bg-[var(--bg-main)] skeleton rounded" />
+      </div>
+    </div>
+  );
+
+  if (!supabase) {
+    return (
+        <div className="min-h-[100dvh] bg-[var(--bg-main)] flex items-center justify-center p-6 transition-colors duration-200">
+            <div className="bg-[var(--card-bg)] p-8 rounded-[24px] shadow-xl text-center max-w-md w-full border border-[var(--border-color)] transition-colors duration-200">
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                    <AlertTriangle size={32} />
+                </div>
+                <h2 className="text-xl font-black text-[var(--text-primary)] mb-2">Supabase Not Connected</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                    Please configure your <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> environment variables to access the Admin Panel.
+                </p>
+                <button onClick={() => push('/')} className="px-6 py-3 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl font-bold text-[var(--text-body)] hover:bg-[var(--bg-main)] transition-colors">
+                    Back to Home
+                </button>
+            </div>
+        </div>
+    );
+  }
+
+  return (
+    <AppLayout activePage="profile">
+      <div className="max-w-5xl mx-auto space-y-3 relative pb-10">
         
-        {activeTab === 'products' ? (
-          <>
-            {/* Product Form */}
-            <div className="bg-white rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-[#E7E5E4] p-6 animate-fade-in">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold flex items-center gap-2 text-[var(--text-primary)] font-serif">
-                  {editingId ? <Edit2 size={20} className="text-blue-500"/> : <Plus size={20} className="text-[var(--text-primary)]"/>}
-                  {editingId ? 'Edit Product' : 'Add New Product'}
-                </h2>
-                {editingId && (
-                  <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
-                    <X size={20} />
-                  </button>
-                )}
-              </div>
-              
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-[#78350F] uppercase tracking-wider mb-1">Product Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Urea 50kg"
-                    className="w-full p-3 border border-[#E7E5E4] rounded-xl focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0]"
-                    value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-[10px] font-bold text-[#78350F] uppercase tracking-wider mb-1">Category</label>
-                  <select
-                    className="w-full p-3 border border-[#E7E5E4] rounded-xl focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0]"
-                    value={formData.category}
-                    onChange={e => setFormData({...formData, category: e.target.value})}
-                    required
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Seeds">Seeds</option>
-                    <option value="Fertilizer">Fertilizer</option>
-                    <option value="Pesticides">Pesticides</option>
-                    <option value="Tools">Tools</option>
-                  </select>
-                </div>
+        {/* Header Row */}
+        <div className="flex items-center gap-3 mt-1 mb-1">
+            <button 
+                onClick={() => window.history.back()} 
+                className="p-1.5 bg-[var(--card-bg)] rounded-lg text-[var(--text-primary)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] transition-colors"
+            >
+                <ArrowLeft size={18} />
+            </button>
+            <h1 className="text-xl font-black text-[var(--text-primary)] tracking-tight leading-none">Admin Panel</h1>
+        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#78350F] uppercase tracking-wider mb-1">Price (₹)</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        className="w-full p-3 border border-[#E7E5E4] rounded-xl focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0]"
-                        value={formData.price}
-                        onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                        required
-                      />
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmId && (
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
+                <div className="bg-[var(--card-bg)] rounded-[24px] p-6 shadow-2xl relative z-10 w-full max-w-sm border border-[var(--border-color)] animate-scale-in transition-colors duration-200">
+                    <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4 mx-auto">
+                        <AlertTriangle size={24} />
                     </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-[#78350F] uppercase tracking-wider mb-1">Stock</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        className="w-full p-3 border border-[#E7E5E4] rounded-xl focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0]"
-                        value={formData.stock}
-                        onChange={e => setFormData({...formData, stock: Number(e.target.value)})}
-                        required
-                      />
+                    <h3 className="text-lg font-bold text-center text-[var(--text-primary)] mb-2">Delete Product?</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm text-center mb-6">This action cannot be undone. Are you sure you want to remove this item?</p>
+                    <div className="flex gap-3">
+                        <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 rounded-xl font-bold text-[var(--text-body)] bg-[var(--bg-main)] hover:bg-[var(--bg-main)]/80 transition-colors border border-[var(--border-color)]">Cancel</button>
+                        <button onClick={() => deleteProduct(deleteConfirmId)} className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors">Delete</button>
                     </div>
                 </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-[#78350F] uppercase tracking-wider mb-1">Image URL</label>
-                  <input
-                    type="text"
-                    placeholder="https://..."
-                    className="w-full p-3 border border-[#E7E5E4] rounded-xl focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0]"
-                    value={formData.image_url}
-                    onChange={e => setFormData({...formData, image_url: e.target.value})}
-                  />
-                </div>
-
-                <div className="mt-2">
-                  <button 
-                    type="submit"
-                    className={`w-full py-4 rounded-[16px] font-bold text-white shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${editingId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#064E3B] hover:bg-[#065E4B]'}`}
-                  >
-                    {editingId ? <Save size={18} /> : <Plus size={18} />}
-                    {editingId ? 'Update Product' : 'Add Product'}
-                  </button>
-                </div>
-              </form>
             </div>
-
-            {/* Product List */}
-            <div className="bg-white rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-[#E7E5E4] overflow-hidden animate-fade-in">
-              <div className="px-6 py-4 border-b border-[#E7E5E4] bg-[#FFFCF0]/50 flex justify-between items-center">
-                <h3 className="font-bold text-[var(--text-primary)] font-serif">Inventory ({products.length})</h3>
-              </div>
-              
-              <div className="divide-y divide-[#E7E5E4]">
-                {products.map(product => (
-                  <div key={product.id} className="p-4 flex items-center gap-4 hover:bg-[#FFFCF0] transition-colors">
-                    <img 
-                      src={product.image_url || 'https://via.placeholder.com/50'} 
-                      alt={product.name} 
-                      className="w-12 h-12 rounded-lg object-cover bg-gray-200"
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-bold text-[var(--text-primary)] text-sm line-clamp-1">{product.name}</h4>
-                      <div className="text-[10px] text-[#78350F] flex gap-2 mt-1">
-                        <span className="bg-[#FFEDD5] px-2 py-0.5 rounded-full font-bold">{product.category}</span>
-                        <span className="font-bold opacity-70">Stock: {product.stock}</span>
-                      </div>
-                    </div>
-                    <div className="text-right mr-2">
-                      <div className="font-black text-[var(--text-primary)]">₹{product.price}</div>
-                    </div>
-                    <div className="flex gap-1">
-                      <button 
-                        onClick={() => startEdit(product)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg active:scale-90 transition-transform"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(product.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg active:scale-90 transition-transform"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {products.length === 0 && (
-                  <div className="p-8 text-center text-gray-500 text-sm">
-                    No products in inventory.
-                  </div>
-                )}
-              </div>
+        )}
+        
+        {/* Stats Overview */}
+        <div className="grid grid-cols-3 gap-3">
+            <div className="bg-[var(--card-bg)] p-4 rounded-[20px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center transition-colors duration-200">
+                <span className="text-2xl font-black text-[var(--text-primary)]">{products.length}</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Products</span>
             </div>
-          </>
-        ) : (
-          /* Orders List */
-          <div className="space-y-4 animate-fade-in">
-             {orders.length === 0 ? (
-               <div className="text-center py-20 opacity-50">
-                 <ShoppingBag size={48} className="mx-auto mb-4 text-[#78350F]" />
-                 <p className="font-bold text-[var(--text-primary)]">No orders yet</p>
-               </div>
-             ) : (
-               orders.map((order) => (
-                 <div key={order.id} className="bg-white rounded-[16px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-[#E7E5E4] overflow-hidden">
-                   <div className="bg-[#FFFCF0]/50 p-4 border-b border-[#E7E5E4] flex justify-between items-center">
-                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-[#ECFDF5] flex items-center justify-center text-[#064E3B]">
-                          <Package size={16} />
+            <div className="bg-[var(--card-bg)] p-4 rounded-[20px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center transition-colors duration-200">
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{orders.filter(o => o.status === 'pending').length}</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Orders</span>
+            </div>
+            <div className="bg-[var(--card-bg)] p-4 rounded-[20px] border border-[var(--border-color)] shadow-sm flex flex-col items-center justify-center text-center transition-colors duration-200">
+                <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{orders.length}</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Sales</span>
+            </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="bg-[var(--card-bg)] p-1.5 rounded-[16px] flex gap-1 shadow-sm border border-[var(--border-color)] transition-colors duration-200">
+            {[
+                { id: 'products', icon: Package, label: 'Products' },
+                { id: 'orders', icon: ShoppingBag, label: 'Orders' },
+                { id: 'updates', icon: Bell, label: 'Updates' },
+                { id: 'delivery', icon: Truck, label: 'Delivery' }
+            ].map((tab) => (
+                <button
+                    key={tab.id}
+                    onClick={() => { setActiveTab(tab.id as any); resetForms(); closeForm(); }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] text-xs font-bold transition-all duration-200 ${
+                        activeTab === tab.id 
+                        ? 'bg-[var(--primary-btn)] text-white shadow-md' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-[var(--bg-main)]'
+                    }`}
+                >
+                    <tab.icon size={16} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+                    {tab.label}
+                </button>
+            ))}
+        </div>
+
+        {/* --- PRODUCTS TAB --- */}
+        {activeTab === 'products' && (
+            <div className="space-y-4 animate-fade-in">
+                {/* Search Bar */}
+                <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input 
+                            type="text" 
+                            placeholder="Search inventory..." 
+                            className="w-full pl-10 pr-4 py-3 rounded-[12px] border border-[var(--border-color)] bg-[var(--card-bg)] focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm font-medium text-[var(--text-body)] placeholder-gray-400 transition-colors duration-200"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <button 
+                        onClick={() => { resetForms(); setIsFormOpen(true); }}
+                        className="bg-[var(--primary-btn)] text-white px-4 md:px-6 rounded-[12px] font-bold text-sm shadow-lg flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all whitespace-nowrap"
+                    >
+                        <Plus size={18} /> <span className="hidden md:inline">Add Product</span>
+                    </button>
+                </div>
+
+                {isFormOpen && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeForm} />
+                        <div className="bg-[var(--bg-main)] w-full max-w-lg max-h-[75vh] rounded-[24px] shadow-2xl relative z-10 flex flex-col animate-slide-up overflow-hidden border border-[var(--border-color)]">
+                            <div className="bg-[var(--bg-main)] px-4 py-3 border-b border-[var(--border-color)] flex items-center justify-between sticky top-0 z-20 shrink-0 transition-colors duration-200">
+                                <div className="flex items-center gap-3">
+                                    <button onClick={closeForm} className="p-2 -ml-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-[var(--text-primary)]">
+                                        <ArrowLeft size={20} />
+                                    </button>
+                                    <h3 className="font-bold text-[var(--text-primary)] text-base">
+                                        {editingId ? 'Edit Product' : 'Add Product'}
+                                    </h3>
+                                </div>
+                                <button onClick={closeForm} className="p-2 hover:bg-[var(--card-bg)] rounded-full transition-colors text-gray-500">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                                <form id="product-form" onSubmit={saveProduct} className="space-y-4">
+                                    <div className="space-y-3">
+                                        <div className="flex flex-col items-center justify-center gap-2 p-3 border-2 border-dashed border-[var(--border-color)] rounded-[16px] bg-[var(--bg-main)]/50 hover:bg-[var(--bg-main)] transition-colors relative group">
+                                            {productForm.image_url ? (
+                                                <div className="relative w-24 h-24 rounded-[16px] overflow-hidden shadow-sm border border-[var(--border-color)]">
+                                                    <img src={productForm.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-12 h-12 bg-[var(--card-bg)] rounded-full flex items-center justify-center shadow-sm text-gray-300 border border-[var(--border-color)]">
+                                                    <ImageIcon size={24} />
+                                                </div>
+                                            )}
+                                            
+                                            <label className="cursor-pointer">
+                                                <span className="bg-[var(--card-bg)] text-[var(--text-body)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-[10px] font-bold shadow-sm hover:bg-[var(--bg-main)] transition-all inline-block">
+                                                    {isSaving ? 'Processing...' : 'Choose Image'}
+                                                </span>
+                                                <input type="file" accept="image/*" onChange={handleFileSelect('main')} className="hidden" disabled={isSaving} />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Product Name</label>
+                                        <input type="text" required className="w-full py-2 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} placeholder="e.g. Urea Fertilizer" />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Category</label>
+                                        <div className="relative">
+                                            <select className="w-full py-2 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm appearance-none" required value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})}>
+                                                <option value="">Select...</option>
+                                                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                            </select>
+                                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Base Price (₹)</label>
+                                            <input type="number" required={!(productForm.variants && productForm.variants.length > 0)} disabled={productForm.variants && productForm.variants.length > 0} className="w-full py-2 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm disabled:opacity-50 disabled:cursor-not-allowed" value={productForm.variants && productForm.variants.length > 0 ? 0 : productForm.price} onChange={e => setProductForm({...productForm, price: Number(e.target.value)})} placeholder="0" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Stock</label>
+                                            <div className="flex gap-2">
+                                                <input type="number" required className="w-full py-2 px-3 border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: Number(e.target.value)})} placeholder="0" />
+                                                <select className="w-20 px-1 text-center border border-[var(--border-color)] rounded-[12px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm" value={productForm.unit} onChange={e => setProductForm({...productForm, unit: e.target.value})}>
+                                                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 bg-[var(--bg-main)]/50 rounded-[12px] border border-[var(--border-color)]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Variants (Optional)</label>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setProductForm({...productForm, variants: [...(productForm.variants || []), { id: Date.now().toString(), label: '', price: '' as any }]})}
+                                                className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline"
+                                            >
+                                                <Plus size={12} /> Add Variant
+                                            </button>
+                                        </div>
+                                        {productForm.variants && productForm.variants.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {productForm.variants.map((variant, index) => (
+                                                    <div key={variant.id} className="flex gap-3 items-center bg-[var(--card-bg)] p-3 rounded-xl border border-[var(--border-color)]">
+                                                        <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-[var(--bg-main)] border border-[var(--border-color)] flex-shrink-0 group">
+                                                            {variant.image_url ? (
+                                                                <img src={variant.image_url} alt="Variant" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                                    <ImageIcon size={14} />
+                                                                </div>
+                                                            )}
+                                                            <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                                                                <span className="text-white text-[8px] font-bold">Edit</span>
+                                                                <input type="file" accept="image/*" onChange={handleFileSelect(variant.id)} className="hidden" disabled={isSaving} />
+                                                            </label>
+                                                        </div>
+                                                        <div className="flex-1 flex gap-3">
+                                                            <div className="flex-1 flex flex-col gap-1">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Weight/Size</label>
+                                                                <input 
+                                                                    type="text" 
+                                                                    placeholder="e.g. 5kg" 
+                                                                    className="w-full py-1.5 px-2.5 border border-[var(--border-color)] rounded-[8px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-xs"
+                                                                    value={variant.label}
+                                                                    onChange={e => {
+                                                                        const newVariants = [...(productForm.variants || [])];
+                                                                        newVariants[index].label = e.target.value;
+                                                                        setProductForm({...productForm, variants: newVariants});
+                                                                    }}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="flex flex-col gap-1 w-20 flex-shrink-0">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Price</label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    placeholder="0" 
+                                                                    className="w-full py-1.5 px-2.5 border border-[var(--border-color)] rounded-[8px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-xs"
+                                                                    value={variant.price}
+                                                                    onChange={e => {
+                                                                        const newVariants = [...(productForm.variants || [])];
+                                                                        newVariants[index].price = Number(e.target.value);
+                                                                        setProductForm({...productForm, variants: newVariants});
+                                                                    }}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newVariants = [...(productForm.variants || [])];
+                                                                newVariants.splice(index, 1);
+                                                                setProductForm({...productForm, variants: newVariants});
+                                                            }}
+                                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">No variants added. Product will use base price.</p>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between p-3 bg-[var(--bg-main)]/50 rounded-[12px] border border-[var(--border-color)]">
+                                        <span className="text-sm font-bold text-[var(--text-body)]">Show in Catalog</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setProductForm({ ...productForm, is_active: !productForm.is_active })}
+                                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                                                productForm.is_active !== false ? 'bg-emerald-600' : 'bg-[var(--bg-main)]'
+                                            }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                                    productForm.is_active !== false ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div className="bg-[var(--card-bg)] p-3 border-t border-[var(--border-color)] sticky bottom-0 z-20 shrink-0 w-full">
+                                <button form="product-form" type="submit" disabled={isSaving} className="w-full bg-[var(--primary-btn)] text-white py-3 rounded-[12px] font-bold shadow-lg hover:opacity-90 active:scale-[0.98] transition-all text-sm flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                    {editingId ? 'Update Product' : 'Save Product'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {cropImageSrc && (
+                    <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setCropImageSrc(null)} />
+                        <div className="bg-[var(--card-bg)] rounded-[24px] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col border border-[var(--border-color)]">
+                            <div className="bg-[var(--bg-main)] px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center sticky top-0 z-20 shrink-0">
+                                <h3 className="font-bold text-[var(--text-primary)] text-lg flex items-center gap-2 font-serif">
+                                    <ImageIcon size={18} className="text-emerald-600"/>
+                                    Crop Image
+                                </h3>
+                                <button onClick={() => setCropImageSrc(null)} className="bg-[var(--card-bg)] p-2 rounded-full hover:bg-[var(--bg-main)] border border-[var(--border-color)] transition-colors text-gray-500"><X size={18} /></button>
+                            </div>
+                            <div className="relative w-full h-[400px] bg-black/10">
+                                <Cropper
+                                  image={cropImageSrc}
+                                  crop={crop}
+                                  zoom={zoom}
+                                  aspect={1}
+                                  onCropChange={setCrop}
+                                  onCropComplete={onCropComplete}
+                                  onZoomChange={setZoom}
+                                />
+                            </div>
+                            <div className="p-4 bg-[var(--bg-main)] border-t border-[var(--border-color)] flex justify-end gap-2">
+                                <button onClick={() => setCropImageSrc(null)} className="px-4 py-2 rounded-[12px] font-bold text-sm text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                                <button onClick={handleCropImage} className="bg-[var(--primary-btn)] text-white px-6 py-2 rounded-[12px] font-bold text-sm shadow-lg hover:opacity-90 active:scale-95 transition-all">Crop & Save</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {filteredProducts.length === 0 && !loadingProducts ? (
+                    <div className="p-12 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)] flex flex-col items-center gap-4 animate-fade-in transition-colors duration-200">
+                        <div className="w-16 h-16 bg-[var(--bg-main)]/50 rounded-full flex items-center justify-center text-gray-400">
+                            <Inbox size={32} />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-[#78350F] uppercase tracking-wider">Order ID</p>
-                          <p className="text-xs font-bold text-[var(--text-primary)]">#{order.id.slice(0, 8)}</p>
+                            <h3 className="text-lg font-bold text-[var(--text-primary)]">No products found</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mx-auto">
+                                {searchTerm ? `No results for "${searchTerm}". Try a different search term.` : "Your inventory is currently empty. Start by adding your first product."}
+                            </p>
                         </div>
-                     </div>
-                     <div className="text-right">
-                       <p className="text-[10px] font-bold text-[#78350F] uppercase tracking-wider flex items-center justify-end gap-1">
-                         <Calendar size={10} />
-                         {new Date(order.created_at).toLocaleDateString()}
-                       </p>
-                       <p className="text-sm font-black text-[var(--text-primary)]">₹{order.total_price}</p>
-                     </div>
-                   </div>
-                   <div className="p-4">
-                     <p className="text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider mb-2">Items</p>
-                     <div className="space-y-2">
-                       {(Array.isArray(order.items) ? order.items : []).map((item: any, idx: number) => (
-                         <div key={idx} className="flex justify-between items-center text-sm border-b border-dashed border-[#E7E5E4] last:border-0 pb-1 last:pb-0">
-                           <span className="text-gray-700 font-medium">
-                             {item.quantity}x {item.name}
-                           </span>
-                           <span className="font-bold text-gray-900">₹{item.price * item.quantity}</span>
-                         </div>
-                       ))}
-                     </div>
-                   </div>
-                 </div>
-               ))
-             )}
+                        {!searchTerm && (
+                            <button 
+                                onClick={() => setIsFormOpen(true)}
+                                className="mt-2 bg-[var(--primary-btn)] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                            >
+                                Add First Product
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {loadingProducts ? (
+                            Array.from({ length: 6 }).map((_, i) => <ProductSkeleton key={i} />)
+                        ) : (
+                            filteredProducts.map((p) => (
+                                <div key={p.id} className={`bg-[var(--card-bg)] rounded-[16px] p-3 shadow-sm border border-[var(--border-color)] flex gap-3 transition-all hover:border-emerald-500/20 hover:shadow-md group ${p.is_active === false ? 'opacity-60 grayscale' : ''}`}>
+                                     <div className="w-16 h-16 rounded-[10px] bg-[var(--bg-main)] flex-shrink-0 overflow-hidden border border-[var(--border-color)]">
+                                        <img src={p.image_url || 'https://via.placeholder.com/100'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.name} loading="lazy" />
+                                     </div>
+                                     <div className="flex-1 flex flex-col justify-between py-0.5">
+                                        <div>
+                                            <div className="flex justify-between items-start">
+                                                <h4 className="font-bold text-[var(--text-primary)] text-sm line-clamp-1 leading-snug">{p.name}</h4>
+                                                {p.is_active === false && <span className="px-1.5 py-0.5 bg-red-500/10 text-red-500 text-[9px] font-bold rounded border border-red-500/20">Hidden</span>}
+                                            </div>
+                                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-500/20">{p.category}</span>
+                                        </div>
+                                        <div className="flex justify-between items-end">
+                                            <div>
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Stock: {p.stock} {p.unit}</span>
+                                                <div className="font-black text-emerald-600 dark:text-emerald-400 text-sm">₹{p.variants && p.variants.length > 0 ? p.variants[0].price : p.price}</div>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                <button onClick={() => { setEditingId(p.id); setProductForm(p); setIsFormOpen(true); }} className="p-1.5 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 border border-blue-500/20 active:scale-95 transition-all"><Edit2 size={14}/></button>
+                                                <button onClick={() => setDeleteConfirmId(p.id)} className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 border border-red-500/20 active:scale-95 transition-all"><Trash2 size={14}/></button>
+                                            </div>
+                                        </div>
+                                     </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* --- ORDERS TAB --- */}
+        {activeTab === 'orders' && (
+            <div className="space-y-3 animate-fade-in">
+                 {orders.length === 0 && !loadingOrders ? (
+                    <div className="p-12 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)] flex flex-col items-center gap-4 animate-fade-in transition-colors duration-200">
+                        <div className="w-16 h-16 bg-[var(--bg-main)]/50 rounded-full flex items-center justify-center text-gray-400">
+                            <ShoppingBag size={32} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-[var(--text-primary)]">No orders yet</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mx-auto">
+                                When customers place orders, they will appear here for you to manage.
+                            </p>
+                        </div>
+                    </div>
+                 ) : (
+                     loadingOrders ? (
+                        Array.from({ length: 3 }).map((_, i) => <OrderSkeleton key={i} />)
+                     ) : (
+                        orders.map(order => (
+                            <div key={order.id} className="bg-[var(--card-bg)] rounded-[16px] p-2.5 shadow-sm border border-[var(--border-color)] transition-all hover:border-emerald-500/20">
+                                {/* Row 1: Order ID + Status */}
+                                <div className="flex justify-between items-center mb-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">#{order.id.slice(0, 8).toUpperCase()}</span>
+                                        <div className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${
+                                            STATUS_OPTIONS.find(opt => opt.value === order.status)?.color || 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                            {order.status}
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <select 
+                                            value={order.status || 'pending'}
+                                            onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                            className="bg-transparent text-[9px] font-bold text-[var(--text-primary)] outline-none cursor-pointer pr-3 appearance-none"
+                                        >
+                                            {STATUS_OPTIONS.map(opt => (
+                                                <option key={opt.value} value={opt.value} className="bg-[var(--card-bg)]">{opt.label}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={8} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                {/* Assign to delivery staff */}
+                                <div className="mt-2 pt-2 border-t border-dashed border-[var(--border-color)]">
+                                  <div className="relative">
+                                    <select
+                                      value={order.assigned_to || ''}
+                                      onChange={e => assignOrderToStaff(order.id, e.target.value)}
+                                      className="w-full py-1.5 px-3 border border-[var(--border-color)] rounded-[10px] bg-[var(--input-bg)] text-[11px] font-bold text-[var(--text-primary)] focus:ring-2 focus:ring-orange-500 outline-none appearance-none"
+                                    >
+                                      <option value="">— Assign Staff —</option>
+                                      {deliveryStaff.filter(s => s.is_active).map(s => (
+                                        <option key={s.id} value={s.id}>{s.name} ({s.phone})</option>
+                                      ))}
+                                    </select>
+                                    <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                  </div>
+                                </div>
+
+                                {/* Row 2: Customer name + phone */}
+                                <div className="flex justify-between items-center mb-1.5 text-[11px]">
+                                    <div className="flex items-center gap-1 font-bold text-[var(--text-primary)]">
+                                        <User size={10} className="text-gray-400" />
+                                        <span>{order.customer_name}</span>
+                                    </div>
+                                    <a href={`tel:${order.phone}`} className="flex items-center gap-1 text-blue-500 font-medium">
+                                        <Phone size={10} />
+                                        <span>{order.phone}</span>
+                                    </a>
+                                </div>
+
+                                {/* Row 3: Total amount + Date */}
+                                <div className="flex justify-between items-center pt-1.5 border-t border-[var(--border-color)] border-dashed">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight">Total:</span>
+                                        <span className="font-black text-emerald-600 dark:text-emerald-400 text-xs">₹{order.total}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[9px] text-gray-400 font-medium">
+                                        <Calendar size={9} />
+                                        <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                
+                                {/* Row 4: Items (small text) */}
+                                <div className="mt-1.5 pt-1.5 border-t border-[var(--border-color)]">
+                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                                        {(Array.isArray(order.items) ? order.items : []).map((item: any, idx: number) => (
+                                            <span key={idx} className="text-[8px] text-gray-500 font-medium">
+                                                {item.quantity}x {item.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* Payment status badge */}
+                                {order.payment_status && (
+                                  <div className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                                    order.payment_status === 'paid_cash' ? 'bg-green-500/10 text-green-600 border-green-500/20' :
+                                    order.payment_status === 'paid_online' ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' :
+                                    order.payment_status === 'delayed' ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' :
+                                    'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                                  }`}>
+                                    {order.payment_status === 'paid_cash' ? '💵 Cash Paid' :
+                                     order.payment_status === 'paid_online' ? '📱 Online Paid' :
+                                     order.payment_status === 'delayed' ? '⏳ Payment Delayed' : '⏳ Pending'}
+                                  </div>
+                                )}
+                                {/* Delivered time */}
+                                {order.delivered_at && (
+                                  <p className="text-[9px] text-gray-400 mt-0.5 flex items-center gap-1">
+                                    <CheckCircle size={9} className="text-green-500" />
+                                    Delivered: {new Date(order.delivered_at).toLocaleString()}
+                                  </p>
+                                )}
+                            </div>
+                        ))
+                     )
+                 )}
+            </div>
+        )}
+
+        {/* --- UPDATES TAB --- */}
+        {activeTab === 'updates' && (
+             <div className="space-y-5 animate-fade-in max-w-2xl mx-auto">
+                                <div className="bg-[var(--card-bg)] rounded-[24px] shadow-sm border border-[var(--border-color)] p-5 transition-colors duration-200">
+                                    <h3 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2"><Bell size={18} /> New Announcement</h3>
+                                    <form onSubmit={(e) => { e.preventDefault(); postUpdate(); }} className="flex flex-col gap-3">
+                                        <textarea 
+                                            required 
+                                            placeholder="Type update here..." 
+                                            className="w-full p-4 rounded-[16px] border border-[var(--border-color)] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] text-sm font-medium resize-none h-28 text-[var(--text-body)] placeholder-gray-400 transition-colors duration-200"
+                                            value={text} 
+                                            onChange={e => setText(e.target.value)} 
+                                        />
+                                        <button type="submit" disabled={isSaving} className="bg-[var(--primary-btn)] text-white py-3 rounded-[12px] font-bold text-sm hover:opacity-90 active:scale-95 transition-all shadow-md self-end px-8 disabled:opacity-50">
+                                            {isSaving ? 'Posting...' : 'Post Update'}
+                                        </button>
+                                    </form>
+                                </div>
+
+                <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-2">Recent Posts</h3>
+                    {updates.length === 0 && !loadingUpdates ? (
+                        <div className="p-12 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)] flex flex-col items-center gap-4 animate-fade-in transition-colors duration-200">
+                            <div className="w-16 h-16 bg-[var(--bg-main)]/50 rounded-full flex items-center justify-center text-gray-400">
+                                <Bell size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-[var(--text-primary)]">No updates yet</h3>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mx-auto">
+                                    Post announcements or store updates to keep your customers informed.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        loadingUpdates ? (
+                            Array.from({ length: 3 }).map((_, i) => <UpdateSkeleton key={i} />)
+                        ) : (
+                            updates.map((u) => (
+                                <div key={u.id} className="bg-[var(--card-bg)] p-4 rounded-[20px] border border-[var(--border-color)] flex gap-4 items-start shadow-sm relative group hover:bg-[var(--bg-main)]/50 transition-colors duration-200">
+                                    <div className="flex flex-col items-center gap-1 min-w-[50px]">
+                                        <div className="w-10 h-10 rounded-full bg-[var(--bg-main)] flex items-center justify-center text-gray-400">
+                                            <Bell size={18} />
+                                        </div>
+                                        <div className="h-full w-0.5 bg-[var(--bg-main)] rounded-full"></div>
+                                    </div>
+                                    <div className="flex-1 pb-2">
+                                        <p className="text-[var(--text-body)] font-medium text-sm leading-relaxed">{u.message}</p>
+                                        <p className="text-[10px] text-gray-400 font-bold mt-2 flex items-center gap-1">
+                                            <Clock size={10} />
+                                            {new Date(u.created_at).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => deleteUpdate(u.id)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                        <Trash2 size={16}/>
+                                    </button>
+                                </div>
+                            ))
+                        )
+                    )}
+                </div>
+            </div>
+        )}
+        {activeTab === 'delivery' && (
+          <div className="space-y-4 animate-fade-in pb-10">
+
+            {/* ── LIVE TRACKING CARD ── */}
+            <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] overflow-hidden shadow-[var(--shadow-soft)]">
+              <div className="px-5 py-4 border-b border-[var(--border-color)] flex items-center justify-between bg-orange-500/5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
+                    <Navigation size={15} className="text-orange-500 animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="font-black text-[var(--text-primary)] text-sm">Live Agent Tracking</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                      {liveLocations.length} agent{liveLocations.length !== 1 ? 's' : ''} active
+                    </p>
+                  </div>
+                </div>
+                <button onClick={loadLiveLocations}
+                  className="p-2 bg-[var(--bg-main)] rounded-xl border border-[var(--border-color)] text-gray-400 hover:text-orange-500 transition-all active:scale-95">
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-2">
+                {liveLocations.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-14 h-14 bg-[var(--bg-main)] rounded-2xl flex items-center justify-center mx-auto mb-3 border border-[var(--border-color)]">
+                      <Navigation size={22} className="text-gray-300 dark:text-gray-600" />
+                    </div>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">No active tracking</p>
+                    <p className="text-[11px] text-gray-400 mt-1 font-medium">Agents must tap "Start GPS" on their device</p>
+                  </div>
+                ) : (
+                  liveLocations.map(loc => (
+                    <div key={loc.staff_id} className="flex items-center gap-3 p-3.5 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-color)] hover:border-orange-500/20 transition-all">
+                      <div className="relative shrink-0">
+                        <div className="w-11 h-11 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
+                          <Truck size={20} className="text-orange-500" />
+                        </div>
+                        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-black text-[var(--text-primary)] text-sm truncate">{loc.staff?.name || 'Agent'}</p>
+                          <span className="text-[8px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded-full border border-green-500/20 shrink-0">LIVE</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 font-medium mt-0.5">{loc.staff?.phone}</p>
+                        <p className="text-[9px] font-mono text-gray-400 mt-0.5">
+                          {Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}
+                        </p>
+                        <p className="text-[9px] text-gray-400 mt-0.5 flex items-center gap-1">
+                          <Clock size={8} /> Updated {new Date(loc.updated_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <a href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                        target="_blank" rel="noreferrer"
+                        className="shrink-0 flex flex-col items-center gap-1 text-[9px] font-black text-orange-500 bg-orange-500/10 px-3 py-2.5 rounded-xl border border-orange-500/20 hover:bg-orange-500/20 active:scale-95 transition-all">
+                        <MapPin size={16} />
+                        Track
+                      </a>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* ── STAFF HEADER ── */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-[var(--text-primary)] text-base">Staff</h3>
+                <p className="text-[10px] text-gray-400 font-medium mt-0.5">{deliveryStaff.length} member{deliveryStaff.length !== 1 ? 's' : ''} registered</p>
+              </div>
+              <button
+                onClick={() => { setEditingStaff(null); setStaffForm({ name: '', phone: '', pin: '' }); setIsStaffFormOpen(true); }}
+                className="flex items-center gap-2 bg-[var(--primary-btn)] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md hover:opacity-90 active:scale-95 transition-all">
+                <Plus size={14} /> Add Staff
+              </button>
+            </div>
+
+            {/* ── ADD/EDIT STAFF MODAL ── */}
+            {isStaffFormOpen && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsStaffFormOpen(false)} />
+                <div className="bg-[var(--card-bg)] w-full max-w-sm rounded-[28px] shadow-2xl relative z-10 border border-[var(--border-color)] overflow-hidden animate-slide-up">
+                  {/* Modal header */}
+                  <div className="px-6 pt-6 pb-4 border-b border-[var(--border-color)] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/20">
+                        <Truck size={16} className="text-orange-500" />
+                      </div>
+                      <h3 className="font-black text-[var(--text-primary)] text-base">
+                        {editingStaff ? 'Edit Staff Member' : 'Add Staff'}
+                      </h3>
+                    </div>
+                    <button onClick={() => setIsStaffFormOpen(false)}
+                      className="p-2 hover:bg-[var(--bg-main)] rounded-xl transition-colors text-gray-400">
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <form onSubmit={saveStaff} className="p-6 space-y-4">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">Full Name</label>
+                      <input required type="text" value={staffForm.name}
+                        onChange={e => setStaffForm({...staffForm, name: e.target.value})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[14px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm transition-all"
+                        placeholder="e.g. Ramesh Kumar" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">Phone Number</label>
+                      <input required type="tel" value={staffForm.phone}
+                        onChange={e => setStaffForm({...staffForm, phone: e.target.value})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[14px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-bold text-[var(--text-primary)] text-sm transition-all"
+                        placeholder="e.g. 9876543210" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">Login PIN (4–6 digits)</label>
+                      <input required type="text" maxLength={6} minLength={4} value={staffForm.pin}
+                        onChange={e => setStaffForm({...staffForm, pin: e.target.value.replace(/\D/g, '')})}
+                        className="w-full py-3 px-4 border border-[var(--border-color)] rounded-[14px] focus:ring-2 focus:ring-emerald-500 outline-none bg-[var(--input-bg)] font-black text-[var(--text-primary)] text-base tracking-[0.5em] transition-all text-center"
+                        placeholder="••••" />
+                      <p className="text-[10px] text-gray-400 font-medium mt-1.5 ml-1 text-center">This PIN is used to login and exit the staff dashboard</p>
+                    </div>
+                    <button type="submit" disabled={savingStaff}
+                      className="w-full bg-[var(--primary-btn)] text-white py-3.5 rounded-[14px] font-black text-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-md">
+                      {savingStaff ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                      {editingStaff ? 'Update Staff Member' : 'Add Staff Member'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* ── STAFF CARDS ── */}
+            <div className="space-y-3">
+              {loadingDelivery ? (
+                [1,2].map(i => (
+                  <div key={i} className="bg-[var(--card-bg)] rounded-[20px] border border-[var(--border-color)] h-32 skeleton" />
+                ))
+              ) : deliveryStaff.length === 0 ? (
+                <div className="p-10 text-center bg-[var(--card-bg)] rounded-[24px] border border-dashed border-[var(--border-color)]">
+                  <Truck size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="font-bold text-[var(--text-primary)] text-sm">No staff yet</p>
+                  <p className="text-xs text-gray-500 mt-1">Add your first staff agent above</p>
+                </div>
+              ) : (
+                deliveryStaff.map(member => {
+                  const isLive = liveLocations.some(l => l.staff_id === member.id);
+                  const activeOrderCount = orders.filter(o => o.assigned_to === member.id && o.status !== 'delivered').length;
+                  const liveData = liveLocations.find(l => l.staff_id === member.id);
+
+                  return (
+                    <div key={member.id} className={`bg-[var(--card-bg)] rounded-[24px] border overflow-hidden shadow-[var(--shadow-soft)] transition-all ${
+                      isLive ? 'border-orange-500/20 shadow-[0_4px_20px_rgba(251,146,60,0.08)]' : 'border-[var(--border-color)]'
+                    }`}>
+                      {/* Staff Header */}
+                      <div className="p-4 flex items-center gap-3">
+                        <div className="relative shrink-0">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${
+                            isLive ? 'bg-orange-500/10 border-orange-500/20' : 'bg-[var(--bg-main)] border-[var(--border-color)]'
+                          }`}>
+                            <Truck size={24} className={isLive ? 'text-orange-500' : 'text-gray-400'} />
+                          </div>
+                          {isLive && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[var(--card-bg)] animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-black text-[var(--text-primary)] text-base">{member.name}</p>
+                            {isLive && (
+                              <span className="text-[9px] font-black text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                                🟢 LIVE
+                              </span>
+                            )}
+                            {!member.is_active && (
+                              <span className="text-[9px] font-black text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                                INACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium mt-0.5">{member.phone}</p>
+
+                          {/* PIN with toggle */}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[10px] text-gray-400 font-mono bg-[var(--bg-main)] px-2 py-0.5 rounded border border-[var(--border-color)]">
+                              PIN: {showPins[member.id] ? member.pin : '•'.repeat(member.pin?.length || 4)}
+                            </span>
+                            <button onClick={() => setShowPins(p => ({...p, [member.id]: !p[member.id]}))}
+                              className="text-gray-400 hover:text-[var(--text-primary)] transition-colors">
+                              {showPins[member.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex flex-col gap-1.5 shrink-0">
+                          <button
+                            onClick={() => { setEditingStaff(member); setStaffForm({ name: member.name, phone: member.phone, pin: member.pin }); setIsStaffFormOpen(true); }}
+                            className="p-2 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500/20 border border-blue-500/20 active:scale-95 transition-all"
+                            title="Edit">
+                            <Edit3 size={14} />
+                          </button>
+                          <button onClick={() => toggleActiveStaff(member.id, member.is_active)}
+                            className={`p-2 rounded-xl border active:scale-95 transition-all ${
+                              member.is_active
+                                ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20'
+                                : 'bg-gray-500/10 text-gray-400 border-gray-500/20 hover:bg-gray-500/20'
+                            }`}
+                            title={member.is_active ? 'Deactivate' : 'Activate'}>
+                            {member.is_active ? <CheckCircle size={14} /> : <X size={14} />}
+                          </button>
+                          <button onClick={() => deleteStaff(member.id)}
+                            className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 border border-red-500/20 active:scale-95 transition-all"
+                            title="Delete">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-3 gap-0 border-t border-[var(--border-color)]">
+                        <div className="px-4 py-3 text-center border-r border-[var(--border-color)]">
+                          <p className="font-black text-[var(--text-primary)] text-lg">{activeOrderCount}</p>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Active</p>
+                        </div>
+                        <div className="px-4 py-3 text-center border-r border-[var(--border-color)]">
+                          <p className="font-black text-[var(--text-primary)] text-lg">
+                            {orders.filter(o => o.assigned_to === member.id).length}
+                          </p>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Total</p>
+                        </div>
+                        <div className="px-4 py-3 text-center">
+                          <p className={`font-black text-lg ${isLive ? 'text-green-500' : 'text-gray-400'}`}>
+                            {isLive ? '●' : '○'}
+                          </p>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">GPS</p>
+                        </div>
+                      </div>
+
+                      {/* Live location bar */}
+                      {isLive && liveData && (
+                        <div className="px-4 py-3 bg-orange-500/5 border-t border-orange-500/10 flex items-center justify-between">
+                          <div>
+                            <p className="text-[9px] font-black text-orange-500 uppercase tracking-wider">Live Location</p>
+                            <p className="text-[10px] font-mono text-gray-400 mt-0.5">
+                              {Number(liveData.lat).toFixed(4)}, {Number(liveData.lng).toFixed(4)}
+                            </p>
+                            <p className="text-[9px] text-gray-400 mt-0.5">
+                              Updated: {new Date(liveData.updated_at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          <a href={`https://www.google.com/maps?q=${liveData.lat},${liveData.lng}`}
+                            target="_blank" rel="noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-black text-orange-500 bg-orange-500/10 px-3 py-2 rounded-xl border border-orange-500/20 active:scale-95 transition-all">
+                            <MapPin size={13} /> Open Map
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Assigned orders preview */}
+                      {activeOrderCount > 0 && (
+                        <div className="px-4 pb-4 border-t border-[var(--border-color)] pt-3">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-2">Assigned Orders</p>
+                          <div className="space-y-1.5">
+                            {orders
+                              .filter(o => o.assigned_to === member.id && o.status !== 'delivered')
+                              .slice(0, 3)
+                              .map(o => (
+                                <div key={o.id} className="flex items-center justify-between bg-[var(--bg-main)] rounded-xl px-3 py-2 border border-[var(--border-color)]">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-[9px] font-mono text-gray-400">#{o.id.slice(0,6).toUpperCase()}</span>
+                                    <span className="text-xs font-bold text-[var(--text-primary)] truncate">{o.customer_name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {o.payment_status && (
+                                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                                        o.payment_status === 'paid_cash' ? 'text-green-600 bg-green-500/10' :
+                                        o.payment_status === 'paid_online' ? 'text-blue-600 bg-blue-500/10' :
+                                        o.payment_status === 'delayed' ? 'text-orange-600 bg-orange-500/10' :
+                                        'text-gray-500 bg-gray-500/10'
+                                      }`}>
+                                        {o.payment_status === 'paid_cash' ? '💵' : o.payment_status === 'paid_online' ? '📱' : o.payment_status === 'delayed' ? '⏳' : '⏳'}
+                                      </span>
+                                    )}
+                                    <span className="font-black text-[var(--text-primary)] text-xs">₹{o.total}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            {activeOrderCount > 3 && (
+                              <p className="text-[10px] text-gray-400 font-medium text-center">+{activeOrderCount - 3} more orders</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* ── USER ACCESS CONTROL ── */}
+            <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] overflow-hidden shadow-[var(--shadow-soft)]">
+              <div className="px-5 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
+                    <User size={15} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-black text-[var(--text-primary)] text-sm">User Access Control</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Block / unblock users</p>
+                  </div>
+                </div>
+                <button onClick={loadAllUsers}
+                  className="p-2 bg-[var(--bg-main)] rounded-xl border border-[var(--border-color)] text-gray-400 hover:text-blue-500 transition-all active:scale-95">
+                  <RefreshCw size={13} />
+                </button>
+              </div>
+              <div className="p-4 space-y-2">
+                {loadingUsers ? (
+                  [1,2,3].map(i => <div key={i} className="h-14 bg-[var(--bg-main)] rounded-[14px] skeleton border border-[var(--border-color)]" />)
+                ) : allUsers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <User size={24} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-[var(--text-primary)]">No users yet</p>
+                  </div>
+                ) : (
+                  allUsers.map(u => (
+                    <div key={u.id} className="flex items-center gap-3 p-3 bg-[var(--bg-main)] rounded-[16px] border border-[var(--border-color)] hover:border-blue-500/10 transition-all">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                        u.is_blocked
+                          ? 'bg-red-500/10 border-red-500/20'
+                          : 'bg-emerald-500/10 border-emerald-500/20'
+                      }`}>
+                        <User size={16} className={u.is_blocked ? 'text-red-500' : 'text-emerald-500'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[var(--text-primary)] text-sm truncate">{u.name || 'Anonymous'}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{u.mobile || 'No phone'}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                          u.is_blocked
+                            ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                        }`}>
+                          {u.is_blocked ? 'Blocked' : 'Active'}
+                        </span>
+                        {/* Toggle switch */}
+                        <button onClick={() => toggleBlockUser(u.id, u.is_blocked || false)}
+                          className={`relative w-12 h-6 rounded-full border transition-all duration-300 ${
+                            u.is_blocked
+                              ? 'bg-red-500/20 border-red-500/30'
+                              : 'bg-emerald-500/20 border-emerald-500/30'
+                          }`}>
+                          <div className={`absolute top-0.5 w-5 h-5 rounded-full shadow-sm transition-all duration-300 ${
+                            u.is_blocked ? 'left-0.5 bg-red-500' : 'left-[26px] bg-emerald-500'
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
           </div>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 };

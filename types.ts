@@ -1,3 +1,10 @@
+export interface Variant {
+  id: string;
+  label: string;
+  price: number;
+  image_url?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -5,29 +12,66 @@ export interface Product {
   price: number;
   image_url: string;
   stock: number;
+  unit?: string; // e.g., 'kg', 'bag', 'piece'
+  is_active: boolean; // Control visibility in catalog
   created_at?: string;
+  variants?: Variant[];
 }
 
 export interface CartItem extends Product {
+  cartItemId: string;
   quantity: number;
+  variant_id?: string;
+  variant_label?: string;
 }
 
 export interface Order {
   id: string;
   created_at: string;
-  total_price: number;
+  total: number;
   items: CartItem[]; // Stored as JSONB in Supabase
   status?: string;
+  customer_name?: string;
+  phone?: string;
+  address?: string;
+  assigned_to?: string;
+  delivery_lat?: number;
+  delivery_lng?: number;
+  delivery_updated_at?: string;
+  payment_status?: string;
+  payment_method?: string;
+  delivered_at?: string;
+}
+
+export interface StoreUpdate {
+  id: string;
+  message: string;
+  created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  created_at?: string;
+}
+
+export interface DeliveryStaff {
+  id: string;
+  name: string;
+  phone: string;
+  vehicle: string;
+  created_at?: string;
 }
 
 export interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, variant?: Variant) => void;
+  removeFromCart: (cartItemId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
   cartCount: number;
-  isCartOpen: boolean;
-  setIsCartOpen: (isOpen: boolean) => void;
 }
