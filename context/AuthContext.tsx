@@ -15,69 +15,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (!supabase) {
       setLoading(false);
       return;
     }
 
-    // Handle email verification redirect
-    const handleAuthRedirect = async () => {
-      // Check if the URL has a hash fragment indicating an auth redirect
-      if (window.location.hash) {
-        try {
-          const { data, error } = await (supabase!.auth as any).getSessionFromUrl({
-            storeSession: true,
-          });
-          if (error) {
-            console.error("Error handling auth redirect:", error);
-            if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token')) {
-              await supabase!.auth.signOut().catch(console.error);
-            }
-          } else if (data.session) {
-            console.log("Session recovered from URL");
-            // Clear the hash from the URL
-            window.history.replaceState(null, '', window.location.pathname);
-            // Redirect to home
-            window.location.replace('/');
-          }
-        } catch (err) {
-          console.error("Auth redirect handling failed:", err);
-        }
-      }
-    };
-
-    handleAuthRedirect();
-
-    // Check active sessions and sets the user
-    const getUser = async () => {
+    const initializeAuth = async () => {
       try {
-        const { data, error } = await supabase!.auth.getUser();
-        if (error) {
-          if (error && error.message !== "Auth session missing") {
-            console.error("Auth error:", error.message);
-          }
-          if (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token')) {
-            await supabase!.auth.signOut().catch(console.error);
+        // Handle email verification redirect
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          try {
+            const { data, error } = await (supabase!.auth as any).getSessionFromUrl({
+              storeSession: true,
+            });
+            if (error) {
+              console.error("Error handling auth redirect:", error);
+            } else if (data.session) {
+              console.log("Session recovered from URL");
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+          } catch (err) {
+            console.error("Auth redirect handling failed:", err);
           }
         }
-        setUser(data?.user || null);
+
+        const { data, error } = await supabase!.auth.getSession();
+        if (error) {
+          console.error("Auth session error:", error.message);
+        }
+        if (isMounted) {
+          setUser(data?.session?.user || null);
+        }
       } catch (err) {
         console.error("Auth check exception:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    getUser();
+    initializeAuth();
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state change:", event, session?.user?.email);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      if (isMounted) {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

@@ -64,10 +64,9 @@ export const Order: React.FC = () => {
     if (!supabase) return;
     setLoading(true);
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) { push('/login'); return; }
+      if (!user) { push('/login'); return; }
       const { data: orderData, error } = await supabase.from('orders').insert([{
-        user_id: authData.user.id,
+        user_id: user.id,
         customer_name: formData.name || profile?.name || 'Guest',
         phone: formData.mobile || profile?.mobile || '',
         address: formData.address || profile?.address || '',

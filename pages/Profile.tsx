@@ -14,7 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '../context/NavigationContext';
 
 const Profile: React.FC = () => {
-  const { user: authUser, signOut } = useAuth();
+  const { user: authUser, loading: authLoading, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const { push } = useNavigation();
@@ -28,15 +28,11 @@ const Profile: React.FC = () => {
   });
 
   useEffect(() => {
-    const getUser = async () => {
-      if (!supabase) return;
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
-      setUser(user);
+    if (!authLoading) {
+      setUser(authUser);
       setLoading(false);
-    };
-    getUser();
-  }, []);
+    }
+  }, [authUser, authLoading]);
 
   useEffect(() => {
     const fetchProfile = async () => {
