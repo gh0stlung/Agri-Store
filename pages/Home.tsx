@@ -94,7 +94,7 @@ export const Home: React.FC = () => {
         </div>
         
         {/* QUICK ACTIONS - Consistent Spacing */}
-        <div className="grid grid-cols-2 gap-3 mt-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <Link href="/catalog" className="bg-[var(--card-bg)] p-5 rounded-[20px] shadow-sm border border-[var(--border-color)] flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-all active:scale-95">
                 <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 rounded-[14px] flex items-center justify-center shadow-inner">
                     <ShoppingBag size={24} />

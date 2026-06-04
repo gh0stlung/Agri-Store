@@ -194,7 +194,7 @@ export const Catalog: React.FC = () => {
             {/* PRODUCTS GRID */}
             {loading ? (
                <div className="w-full mt-3 px-3">
-                 <div className="grid grid-cols-2 gap-[16px] w-full">
+                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[16px] w-full">
                    {[1,2,3,4,5,6].map(i => (
                      <div key={i} className="flex flex-col gap-2">
                        <div className="aspect-square w-full skeleton h-[100px]"></div>
@@ -227,7 +227,7 @@ export const Catalog: React.FC = () => {
                  </div>
                </div>
             ) : (
-                <div className="w-full grid grid-cols-2 gap-[16px] min-h-[300px] content-start mt-3 px-3">
+                <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-[16px] min-h-[300px] content-start mt-3 px-3">
                     {filteredProducts.map((product) => (
                         <div key={product.id}>
                             <ProductCard product={product} onAdd={addToCart} />

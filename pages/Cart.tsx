@@ -13,7 +13,7 @@ export const Cart: React.FC = () => {
 
   return (
     <AppLayout activePage="cart">
-      <div className="max-w-md mx-auto pb-40">
+      <div className="max-w-2xl mx-auto pb-40">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

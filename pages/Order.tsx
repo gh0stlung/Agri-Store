@@ -156,7 +156,7 @@ export const Order: React.FC = () => {
   // ── CHECKOUT PAGE ──
   return (
     <AppLayout activePage="catalog" pageTitle="Checkout">
-      <div className="max-w-md mx-auto pb-40 space-y-4">
+      <div className="max-w-2xl mx-auto pb-40 space-y-4">
 
         {/* STEP 1 — Order Items */}
         <div className="bg-[var(--card-bg)] rounded-[24px] border border-[var(--border-color)] shadow-[var(--shadow-soft)] overflow-hidden">

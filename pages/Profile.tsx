@@ -103,7 +103,7 @@ const Profile: React.FC = () => {
 
   if (loading) return (
     <AppLayout activePage="profile">
-      <div className="max-w-md mx-auto space-y-2 pb-24 px-4 pt-2">
+      <div className="max-w-2xl mx-auto space-y-2 pb-24 px-4 pt-2">
         <div className="bg-[var(--card-bg)] rounded-[24px] p-3 shadow-sm border border-[var(--border-color)]">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 skeleton rounded-2xl" />
@@ -133,7 +133,7 @@ const Profile: React.FC = () => {
 
   return (
     <AppLayout activePage="profile">
-      <div className="max-w-md mx-auto space-y-2.5 pb-24 px-4 pt-2">
+      <div className="max-w-2xl mx-auto space-y-2.5 pb-24 px-4 pt-2">
         
         {/* Login Prompt for Guests */}
         {!user && (
