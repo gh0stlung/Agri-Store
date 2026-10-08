@@ -1,122 +1,98 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase.ts';
-import { useNavigate } from 'react-router-dom';
-import { Lock, ArrowLeft, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { useNavigation } from '../context/NavigationContext';
+import { User, ShieldCheck, Truck, Leaf } from 'lucide-react';
 
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-
-  // Check if already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/admin', { replace: true });
-      }
-      setCheckingSession(false);
-    };
-    checkSession();
-  }, [navigate]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-
-        if (error) {
-            console.error("Login failed:", error);
-            setError('Invalid credentials. Please try again.');
-        } else {
-            // Successful login -> Redirect to Admin
-            navigate('/admin', { replace: true });
-        }
-    } catch (err) {
-        setError('An unexpected error occurred.');
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  if (checkingSession) {
-      return (
-          <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
-              <Loader2 className="animate-spin text-[var(--text-primary)]" size={32} />
-          </div>
-      );
-  }
+  const { push } = useNavigation();
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 relative">
-      <Link to="/" className="absolute top-6 left-6 p-2 rounded-full bg-white shadow-sm border border-[#E7E5E4] text-[var(--text-primary)]">
-        <ArrowLeft size={24} />
-      </Link>
+    <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-[#0b1a0e]">
 
-      <div className="w-full max-w-sm animate-fade-in">
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-[#ECFDF5] text-[#064E3B] rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-[var(--shadow-premium)] transform rotate-3">
-            <Lock size={32} strokeWidth={2.5} />
+      {/* Static gradient background — no image, no scroll */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0b1a0e] via-[#0f2d14] to-[#071209]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-emerald-500/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-600/6 rounded-full blur-2xl" />
+        <div className="absolute top-1/4 left-0 w-48 h-48 bg-emerald-400/5 rounded-full blur-2xl" />
+        {/* Subtle grid */}
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(52,211,153,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(52,211,153,0.4) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }} />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[320px] flex flex-col items-center px-2">
+
+        {/* Logo + Brand */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-20 h-20 bg-white/5 backdrop-blur-md rounded-3xl flex items-center justify-center mb-4 border border-white/10 shadow-[0_0_40px_rgba(52,211,153,0.15)] p-2">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain rounded-2xl" />
           </div>
-          <h1 className="text-3xl font-black text-[var(--text-primary)] font-serif mb-2">Admin Portal</h1>
-          <p className="text-[#78350F] font-medium opacity-80">Restricted access for store managers.</p>
+          <h1 className="text-2xl font-black text-white font-serif tracking-tight text-center leading-tight">
+            New Nikhil<br />Khad Bhandar
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-px w-8 bg-emerald-500/30" />
+            <p className="text-emerald-400/50 text-[10px] font-bold uppercase tracking-[0.3em]">Choose Login Type</p>
+            <div className="h-px w-8 bg-emerald-500/30" />
+          </div>
         </div>
 
-        <div className="bg-white rounded-[24px] shadow-[var(--shadow-premium)] border border-[#E7E5E4] p-8">
-          {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-bold text-center border border-red-100 animate-fade-in">
-              {error}
-            </div>
-          )}
+        {/* 3 Login Buttons */}
+        <div className="w-full space-y-3">
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider mb-2">Email Address</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-4 border border-[#E7E5E4] rounded-xl focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0] font-bold text-[var(--text-body)] transition-all"
-                placeholder="admin@store.com"
-              />
+          {/* Customer */}
+          <button onClick={() => push('/user-login')}
+            className="w-full group relative overflow-hidden bg-white/5 hover:bg-emerald-500/10 border border-white/8 hover:border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-200 active:scale-[0.98]">
+            <div className="w-11 h-11 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/15 group-hover:scale-110 transition-transform shrink-0">
+              <User size={20} className="text-emerald-400" />
             </div>
-            
-            <div>
-              <label className="block text-[10px] font-bold text-[#A8A29E] uppercase tracking-wider mb-2">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-4 border border-[#E7E5E4] rounded-xl focus:ring-2 focus:ring-[#064E3B] outline-none bg-[#FFFCF0] font-bold text-[var(--text-body)] transition-all"
-                placeholder="••••••••"
-              />
+            <div className="text-left flex-1">
+              <p className="font-black text-white text-sm">Customer Login</p>
+              <p className="text-emerald-200/30 text-[11px] font-medium mt-0.5">Shop, order & track delivery</p>
             </div>
+            <div className="text-white/20 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all">
+              <span className="text-lg font-black">›</span>
+            </div>
+          </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#064E3B] hover:bg-[#065E4B] text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:scale-100 mt-4 flex justify-center items-center gap-2"
-            >
-              {loading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={20} />
-                    Verifying...
-                  </>
-              ) : 'Access Dashboard'}
-            </button>
-          </form>
+          {/* Admin */}
+          <button onClick={() => push('/admin-login')}
+            className="w-full group relative overflow-hidden bg-white/5 hover:bg-blue-500/10 border border-white/8 hover:border-blue-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-200 active:scale-[0.98]">
+            <div className="w-11 h-11 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/15 group-hover:scale-110 transition-transform shrink-0">
+              <ShieldCheck size={20} className="text-blue-400" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="font-black text-white text-sm">Admin Login</p>
+              <p className="text-blue-200/30 text-[11px] font-medium mt-0.5">Manage store & inventory</p>
+            </div>
+            <div className="text-white/20 group-hover:text-blue-400 group-hover:translate-x-1 transition-all">
+              <span className="text-lg font-black">›</span>
+            </div>
+          </button>
+
+          {/* Delivery */}
+          <button onClick={() => push('/delivery-login')}
+            className="w-full group relative overflow-hidden bg-white/5 hover:bg-orange-500/10 border border-white/8 hover:border-orange-500/30 rounded-2xl p-4 flex items-center gap-4 transition-all duration-200 active:scale-[0.98]">
+            <div className="w-11 h-11 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/15 group-hover:scale-110 transition-transform shrink-0">
+              <Truck size={20} className="text-orange-400" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="font-black text-white text-sm">Staff Login</p>
+              <p className="text-orange-200/30 text-[11px] font-medium mt-0.5">View & deliver assigned orders</p>
+            </div>
+            <div className="text-white/20 group-hover:text-orange-400 group-hover:translate-x-1 transition-all">
+              <span className="text-lg font-black">›</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 flex items-center gap-2 opacity-20">
+          <Leaf size={10} className="text-emerald-400" />
+          <p className="text-emerald-100 text-[9px] font-bold tracking-[0.3em] uppercase">Est. 2005 • Ganjdundwara</p>
+          <Leaf size={10} className="text-emerald-400" />
         </div>
       </div>
     </div>
